@@ -13,7 +13,6 @@ export default class Tetris {
 
         this._score = score;
 
-        console.log("Listen for keys " + keys)
         document.addEventListener('keydown', this._handleKeydown.bind(this, keys));
 
         this._arena = matrix.create(arenaW, arenaH);
@@ -165,8 +164,6 @@ export default class Tetris {
             return;
         }
 
-        console.log('Keydown ' + event.keyCode);
-
         switch (event.keyCode) {
             case keys[0]:           // left
                 this._move(true);
@@ -175,7 +172,6 @@ export default class Tetris {
                 this._move(false);
                 break;
             case keys[2]:           // rotate left
-                console.log('Rotate left ' + event.keyCode + " " + keys[2]);
                 this._rotate(true);
                 break;
             case keys[3]:           // rotate right

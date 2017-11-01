@@ -2,6 +2,7 @@ import { PIECES } from './pieces.js';
 import * as matrix from './matrix.js';
 import Tetris from './Tetris.js';
 import Timer from './Timer.js';
+import ConnectionManager from './ConnectionManager.js';
 
 // we have the game arena as 12x20 matrix tiles
 // wih scale of 20 this means 240x400 pixels canvas
@@ -197,5 +198,6 @@ start.addEventListener('click', changeState);
 
 setState(STATE.INIT);
 
-// TODO: fix keypress of one player blocks others
-// TODO: increase drop rate as the time goes - more difficult
+
+const conManager = new ConnectionManager();
+conManager.connect('ws://localhost:9000');

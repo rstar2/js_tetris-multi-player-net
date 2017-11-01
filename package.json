@@ -12,5 +12,8 @@
     "url": "git+https://github.com/rstar2/js_tetris-multi-players-net.git"
   },
   "author": "Rumen Neshev",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^3.2.0"
+  }
 }
