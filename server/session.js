@@ -10,8 +10,16 @@ class Session {
         return this._id;
     }
 
+    get size() {
+        return this._clients.size;
+    }
+
     get isEmpty() {
-        return this._clients.size === 0;
+        return this.size === 0;
+    }
+
+    get clients() {
+        return [...this._clients];
     }
 
     /**
@@ -39,13 +47,5 @@ class Session {
     }
 
 }
-Session.generateId = function (len = 6, chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') {
-    let id = '';
-    while (len--) {
-        id += chars[Math.random() * chars.length | 0];
-    }
-
-    return id;
-};
 
 module.exports = Session;

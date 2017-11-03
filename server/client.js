@@ -1,7 +1,14 @@
+const log = require('./debug').log;
+
 class Client {
-    constructor(conn) {
+    constructor(conn, id) {
         this._conn = conn;
+        this._id = id;
         this._session = null;
+    }
+
+    get id() {
+        return this._id;
     }
 
     get session() {
@@ -25,6 +32,34 @@ class Client {
 
     detach() {
         this._session = null;
+    }
+
+    /**
+     * 
+     * @param {String} type 
+     * @param {Object} data 
+     */
+    receive(type, data) {
+        log('Message received', type, data);
+
+    }
+
+    /**
+     * 
+     * @param {String} type 
+     * @param {Object} data 
+     */
+    send(type, data) {
+        log('Message send', type, data);
+        const msg = { type };
+        if (data) {
+            msg.data = data;
+        }
+        this._conn.send(JSON.stringify(msg), function ack(err) {
+            if (err) {
+                console.error('Message failed', type, data)
+            }
+        });
     }
 
 }

@@ -15,7 +15,7 @@
             font-size: 2em;
         }
 
-        .contatiner {
+        .container {
             text-align: center;
             display: flex;
         }
@@ -48,26 +48,21 @@
     </style>
 
     <script type="module" src="js/main.js"></script>
+
+    <template id="player-template">
+        <div class="player">
+            <div class="score">0</div>
+            <canvas class="screen" width="240" height="400"></canvas>
+        </div>
+    </template>
+
 </head>
 
 <body>
     <button id="start">Start</button>
 
-    <div class="contatiner">
-        <div class="player">
-            <div class="score">0</div>
-            <canvas class="screen" width="240" height="400"></canvas>
-        </div>
+    <div class="container">
 
-        <div class="player">
-            <div class="score">0</div>
-            <canvas class="screen" width="240" height="400"></canvas>
-        </div>
-
-        <!-- <div class="player">
-            <div class="score">0</div>
-            <canvas class="screen" width="240" height="400"></canvas>
-        </div> -->
     </div>
 
 </body>

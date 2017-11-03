@@ -121,19 +121,23 @@ const controller = {
     }
 };
 
-// the key sets - define as many as players needed
-const keySets = [
-    [90, 67, 81, 87, 88],
-    [37, 39, 219, 221, 40]
-];
-
 const tetrises = [];
-const players = document.querySelectorAll('.player');
-[...players].forEach(element => {
-    tetrises.push(new Tetris(controller, element.querySelector('.screen'),
-        ARENA_WIDTH, ARENA_HEIGHT, SCALE, element.querySelector('.score'),
-        keySets.shift()));
-});
+
+const createTetris = (function () {
+    const playerTemplate = document.getElementById('player-template');
+    const container = document.querySelector('.container');
+
+    return function createTetrisImpl(isOwner) {
+        const player = document.importNode(playerTemplate.content, true).children[0];
+        container.appendChild(player);
+
+        tetrises.push(new Tetris(controller, player.querySelector('.screen'),
+            ARENA_WIDTH, ARENA_HEIGHT, SCALE, player.querySelector('.score'),
+            isOwner ? [37, 39, 219, 221, 40] : undefined));
+    };
+})();
+
+
 
 let state;
 function setState(newState) {
@@ -196,8 +200,12 @@ function changeState() {
 const start = document.getElementById('start');
 start.addEventListener('click', changeState);
 
-setState(STATE.INIT);
-
-
 const conManager = new ConnectionManager();
 conManager.connect('ws://localhost:9000');
+
+
+// create owner's tetris
+createTetris(true);
+
+// intitialize it
+setState(STATE.INIT);
