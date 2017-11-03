@@ -29,6 +29,9 @@ server.on('connection', conn => {
                 log('Session destroyed ', session.id);
                 sessions.delete(session.id);
             }
+
+            // broadcast the current room's/session's state
+            broadcastSessionState(session);
         }
     });
 
@@ -95,11 +98,21 @@ function getSession(id, createIfNotExists = false) {
     return session;
 }
 
+/**
+ * 
+ * @param {Session} session 
+ * @param {String} type 
+ * @param {Object} [data] 
+ */
 function broadcastMessage(session, type, data) {
     session.clients.forEach(client => client.send(type, data));
 }
 
-function broadcastSessionJoin(session) {
+/**
+ * 
+ * @param {Session} session 
+ */
+function broadcastSessionState(session) {
     const clients = session.clients;
 
     clients.forEach(client => {
@@ -130,5 +143,5 @@ function onSessionJoin(client, sessionId) {
     log('Session joined ', session.id, session.size);
 
     // broadcast the current room's/session's state
-    broadcastSessionJoin(session);
+    broadcastSessionState(session);
 }
