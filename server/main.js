@@ -11,7 +11,7 @@ const MSG_TYPE = {
     SESSION_CREATE: 'session-create',
     SESSION_CREATED: 'session-created',
     SESSION_JOIN: 'session-join',
-    SESSION_JOINED: 'session-joined',
+    SESSION_STATE: 'session-state',
 };
 
 const sessions = new Map();
@@ -116,9 +116,9 @@ function broadcastSessionState(session) {
     const clients = session.clients;
 
     clients.forEach(client => {
-        client.send(MSG_TYPE.SESSION_JOINED, {
-            owner: client.id,
-            clients: clients.map(client => client.id)
+        client.send(MSG_TYPE.SESSION_STATE, {
+            current: client.id,
+            peers: clients.map(client => client.id)
         });
     });
 }

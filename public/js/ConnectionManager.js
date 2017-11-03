@@ -11,12 +11,15 @@ const MSG_TYPE = {
     SESSION_CREATED: 'session-created',
 
     SESSION_JOIN: 'session-join',
+    SESSION_STATE: 'session-state',
 };
 
 export default class ConnectionManager {
 
     constructor() {
         this._conn = null;
+
+        this._peers = new Map();
     }
 
     connect(address) {
@@ -56,9 +59,21 @@ export default class ConnectionManager {
 
         switch (type) {
             case MSG_TYPE.SESSION_CREATED:
-                window.location.hash = data.id;
+                this.onReceivedSessionCreated(data.id);
+                break;
+            case MSG_TYPE.SESSION_STATE:
+                this.onReceivedSessionState(data.current, data.peers);
                 break;
         }
+    }
+
+    onReceivedSessionCreated(sessionId) {
+        window.location.hash = sessionId;
+    }
+
+    onReceivedSessionState(currentPeer, peers) {
+        const others = peers.filter(id => currentPeer !== id);
+        log(others);
     }
 
     /**
