@@ -1,8 +1,10 @@
 import * as matrix from './matrix.js';
 import Player from './Player.js';
+import Timer from './Timer.js';
 
+let count = 0;
 export default class Tetris {
-    constructor(controller, canvas, arenaW, arenaH, scale, score, keys = [37, 39, 40, 81, 87]) {
+    constructor(controller, canvas, arenaW, arenaH, scale, score) {
         this._controller = controller;
         this._canvas = canvas;
         this._context = canvas.getContext('2d');
@@ -13,7 +15,13 @@ export default class Tetris {
 
         this._score = score;
 
-        document.addEventListener('keydown', this._handleKeydown.bind(this, keys));
+        this._id = ++count;
+
+        if (controller) {
+            document.addEventListener('keydown', this._handleKeydown.bind(this, [37, 39, 219, 221, 40]));
+
+            this._timer = new Timer({ update: this._drop, render: this._render }, 1, false);
+        }
 
         this._arena = matrix.create(arenaW, arenaH);
         this._player = new Player(arenaW / 2);
@@ -21,12 +29,12 @@ export default class Tetris {
         // dynamic members
         this._skipNextNotForced = false;
         this._pieceCount = 0;
-        this._ended = null; // ended date
+        this._ended = true; // ended date
     }
 
     reset() {
         // reset initial members
-        this._ended = null;
+        this._ended = false;
         this._skipNextNotForced = false;
         this._pieceCount = 0;
 
@@ -40,12 +48,10 @@ export default class Tetris {
         // generate a new piece
         this._generatePiece();
         // render all till now 
-        this.render();
-
-        this.renderWinner(true);
+        this._render();
     }
 
-    render() {
+    _render() {
         this._context.fillStyle = 'black';
         this._context.fillRect(0, 0, this._canvas.width, this._canvas.height);
 
@@ -56,7 +62,7 @@ export default class Tetris {
         matrix.render(this._player.piece, this._context, this._player.color, this._player.pos);
     }
 
-    drop(isForced) {
+    _drop(isForced) {
         // when forced 'drop' from the key-event-listener then skip the next normal one
         // in order not to get an additional drop right after
         if (isForced) {
@@ -89,8 +95,8 @@ export default class Tetris {
             // check for Game Over - just check if right after a new piece there's a collision
             if (matrix.isCollide(this._arena, this._player)) {
                 // notify the controller that this player-tetris 'ended' (though it may still not have lost)
-                this._ended = new Date();
-                this._controller.ended(this);
+                this._ended = true;
+                this._controller.sendEnd(this.getId());
             }
         }
     }
@@ -99,22 +105,15 @@ export default class Tetris {
         return this._player.score;
     }
 
-    isEnded() {
-        return !!this.getEndedDate();
-    }
-
-    getEndedDate() {
-        return this._ended;
-    }
-
-    renderWinner(remove = false) {
-        this._canvas.classList.toggle('winner', !remove);
+    getId() {
+        return this._id;
     }
 
     _generatePiece() {
         this._pieceCount++;
         // get next piece from the controller
-        this._player.resetWith(this._controller.getPiece(this._pieceCount), 'red');
+        const nextPiece = this._controller.getPiece(this.getId(), this._pieceCount);
+        this._player.resetWith(nextPiece, 'red');
     }
 
     _move(isLeft) {
@@ -160,7 +159,7 @@ export default class Tetris {
     }
 
     _handleKeydown(keys, event) {
-        if (this.isEnded()) {
+        if (this._ended) {
             return;
         }
 

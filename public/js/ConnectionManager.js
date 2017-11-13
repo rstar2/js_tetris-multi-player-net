@@ -1,7 +1,7 @@
-
 const isLOG = true;
 function log() {
     if (isLOG) {
+        // eslint-disable-next-line
         console.log.apply(this, arguments);
     }
 }
@@ -16,7 +16,12 @@ const MSG_TYPE = {
 
 export default class ConnectionManager {
 
-    constructor() {
+    /**
+     * 
+     * @param {TetrisManager} tetrisManager 
+     */
+    constructor(tetrisManager) {
+        this._tetrisManager = tetrisManager;
         this._conn = null;
 
         this._peers = new Map();
@@ -34,7 +39,7 @@ export default class ConnectionManager {
         this._conn.addEventListener('message', event => {
             const { type, data } = JSON.parse(event.data);
 
-            this.onReceived(type, data);
+            this._onReceived(type, data);
         });
     }
 
@@ -54,26 +59,42 @@ export default class ConnectionManager {
      * @param {String} type 
      * @param {Object} data 
      */
-    onReceived(type, data) {
+    _onReceived(type, data) {
         log('Message received', type, ' ', data);
 
         switch (type) {
             case MSG_TYPE.SESSION_CREATED:
-                this.onReceivedSessionCreated(data.id);
+                this._onReceivedSessionCreated(data.id);
                 break;
             case MSG_TYPE.SESSION_STATE:
-                this.onReceivedSessionState(data.current, data.peers);
+                this._onReceivedSessionState(data.current, data.peers);
                 break;
         }
     }
 
-    onReceivedSessionCreated(sessionId) {
+    _onReceivedSessionCreated(sessionId) {
         window.location.hash = sessionId;
     }
 
-    onReceivedSessionState(currentPeer, peers) {
-        const others = peers.filter(id => currentPeer !== id);
-        log(others);
+    _onReceivedSessionState(currentPeer, allPeers) {
+        const others = allPeers.filter(id => currentPeer !== id);
+
+        // add all newly connected peers and draw a Tetris for them
+        others.forEach(peer => {
+            if (!this._peers.has(peer)) {
+                this._peers.set(peer, this._tetrisManager.create());
+            }
+        });
+
+        // remove disconnected ones
+        this._peers.forEach((tetris, peer) => {
+            // this current tetris/peer is not in the latest session/room state
+            // so remove it
+            if (-1 === others.indexOf(peer)) {
+                this._peers.delete(peer);
+                this._tetrisManager.remove(tetris);
+            }
+        });
     }
 
     /**
