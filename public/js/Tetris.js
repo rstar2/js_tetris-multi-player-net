@@ -24,17 +24,25 @@ export default class Tetris {
         }
 
         this._arena = matrix.create(arenaW, arenaH);
-        this._player = new Player(arenaW / 2);
+        this._player = new Player(controller, arenaW / 2);
 
         // dynamic members
         this._skipNextNotForced = false;
         this._pieceCount = 0;
-        this._ended = true; // ended date
+        this._ended = null; // ended date
+    }
+
+    getId() {
+        return this._id;
+    }
+
+    getScore() {
+        return this._player.score;
     }
 
     reset() {
         // reset initial members
-        this._ended = false;
+        this._ended = null;
         this._skipNextNotForced = false;
         this._pieceCount = 0;
 
@@ -49,6 +57,25 @@ export default class Tetris {
         this._generatePiece();
         // render all till now 
         this._render();
+    }
+
+    update({arena, piece, pos, score, ended}) {
+        let updated = this._player.update({piece, pos, score});
+        if (arena) {
+            updated = true;
+            this._arena = arena;
+        }
+        if (updated) {
+            this._render();
+        }
+
+        if (score) {
+            this._renderScore();
+        }
+
+        if (ended) {
+            this._ended = ended;
+        }
     }
 
     _render() {
@@ -89,30 +116,24 @@ export default class Tetris {
                 this._renderScore();
             }
 
+            this._controller.sendUpdate({arena : this._arena});
+
             // generate a new piece for the player - it will be also started form the top
             this._generatePiece();
 
             // check for Game Over - just check if right after a new piece there's a collision
             if (matrix.isCollide(this._arena, this._player)) {
                 // notify the controller that this player-tetris 'ended' (though it may still not have lost)
-                this._ended = true;
-                this._controller.sendEnd(this.getId());
+                this._timer.stop();
+                this._controller.sendEnd();
             }
         }
-    }
-
-    getScore() {
-        return this._player.score;
-    }
-
-    getId() {
-        return this._id;
     }
 
     _generatePiece() {
         this._pieceCount++;
         // get next piece from the controller
-        const nextPiece = this._controller.getPiece(this.getId(), this._pieceCount);
+        const nextPiece = this._controller.getPiece(this._pieceCount);
         this._player.resetWith(nextPiece, 'red');
     }
 
@@ -126,7 +147,7 @@ export default class Tetris {
 
     _rotate(isLeft) {
         const oldPosX = this._player.pos.x;
-        matrix.rotate(this._player.piece, isLeft);
+        this._player.rotate(isLeft);
 
         // check for collision - we have to check multiple times, until there's no collision
         // or revert back to starting position if we can't find such
@@ -146,7 +167,7 @@ export default class Tetris {
                 // we can't keep checking forever - break if no "collision-free" position is possible
                 // so revert to starting position
                 this._player.pos.x = oldPosX;
-                matrix.rotate(this._player.piece, !isLeft);
+                this._player.rotate(!isLeft);
                 break;
             }
         }

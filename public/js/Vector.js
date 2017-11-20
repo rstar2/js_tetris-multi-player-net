@@ -20,4 +20,9 @@ export default class Vector {
         this._y = y;
     }
 
+    set(vec) {
+        this._x = vec.x;
+        this._y = vec.y;
+    }
+
 }

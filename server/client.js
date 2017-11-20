@@ -57,7 +57,7 @@ class Client {
         }
         this._conn.send(JSON.stringify(msg), function ack(err) {
             if (err) {
-                console.error('Message failed', type, data)
+                console.error('Message failed', type, data);
             }
         });
     }

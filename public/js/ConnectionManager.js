@@ -6,12 +6,13 @@ function log() {
     }
 }
 
-const MSG_TYPE = {
+export const MSG_TYPE = {
     SESSION_CREATE: 'session-create',
     SESSION_CREATED: 'session-created',
 
     SESSION_JOIN: 'session-join',
     SESSION_STATE: 'session-state',
+    UPDATE_STATE: 'update-state',
 };
 
 export default class ConnectionManager {
@@ -69,13 +70,25 @@ export default class ConnectionManager {
             case MSG_TYPE.SESSION_STATE:
                 this._onReceivedSessionState(data.current, data.peers);
                 break;
+            case MSG_TYPE.UPDATE_STATE:
+                this._onReceivedUpdateState(data.peer, data.state);
+                break;
         }
     }
 
+    /**
+     * 
+     * @param {String} sessionId 
+     */
     _onReceivedSessionCreated(sessionId) {
         window.location.hash = sessionId;
     }
 
+    /**
+     * 
+     * @param {String} currentPeer 
+     * @param {String[]} allPeers 
+     */
     _onReceivedSessionState(currentPeer, allPeers) {
         const others = allPeers.filter(id => currentPeer !== id);
 
@@ -95,6 +108,23 @@ export default class ConnectionManager {
                 this._tetrisManager.remove(tetris);
             }
         });
+    }
+
+    /**
+     * 
+     * @param {String} peer 
+     * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state 
+     */
+    _onReceivedUpdateState(peer, state) {
+        const tetris = this._peers.get(peer);
+        if (tetris) {
+            // send the update state to the specific tetris
+            tetris.update(state);
+            const { ended } = state;
+            if (ended) {
+                // TODO: check if all tetrises are finally ended
+            }
+        }
     }
 
     /**

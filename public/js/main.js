@@ -1,24 +1,24 @@
 import { PIECES } from './pieces.js';
 import * as matrix from './matrix.js';
 import TetrisManager from './TetrisManager.js';
-import ConnectionManager from './ConnectionManager.js';
+import ConnectionManager, { MSG_TYPE } from './ConnectionManager.js';
 
 
 const controller = {
-    getPiece(tetrisId, pieceCount) {
+    getPiece(pieceCount) {
         // generate a new random piece for each tetris
         const index = Math.floor(Math.random() * PIECES.length);
         return matrix.clone(PIECES[index]);
     },
 
-    sendEnd(tetrisId) {
+    sendEnd() {
         //TODO: send owner's end state
         // conManager.
     },
 
-    sendUpdate(tetrisId) {
-        //TODO: send owner's last update move/drop
-        // conManager.
+    sendUpdate(state) {
+        // send local tetris'es last updated state
+        conManager.send(MSG_TYPE.UPDATE_STATE, state);
     }
 };
 
