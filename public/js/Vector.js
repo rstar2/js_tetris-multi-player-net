@@ -21,8 +21,8 @@ export default class Vector {
     }
 
     set(vec) {
-        this._x = vec.x;
-        this._y = vec.y;
+        this._x = vec._x;
+        this._y = vec._y;
     }
 
 }

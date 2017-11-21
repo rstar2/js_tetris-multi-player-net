@@ -5,15 +5,19 @@ import ConnectionManager, { MSG_TYPE } from './ConnectionManager.js';
 
 
 const controller = {
+    init() {
+        tetrisLocal.reset();
+        tetrisLocal.start();
+    },
+
+    checkEnded() {
+        // TODO: check all tetrises
+    },
+
     getPiece(pieceCount) {
         // generate a new random piece for each tetris
         const index = Math.floor(Math.random() * PIECES.length);
         return matrix.clone(PIECES[index]);
-    },
-
-    sendEnd() {
-        //TODO: send owner's end state
-        // conManager.
     },
 
     sendUpdate(state) {
@@ -25,13 +29,12 @@ const controller = {
 const tetrisManager = new TetrisManager(document.getElementById('player-template'),
     document.querySelector('.container'));
 // create the current local tetris
-tetrisManager.create(controller);
+const tetrisLocal = tetrisManager.create(controller);
 
-const conManager = new ConnectionManager(tetrisManager);
+const conManager = new ConnectionManager(controller, tetrisManager);
 conManager.connect('ws://localhost:9000');
 
 tetrisManager.reset();
-
 
 // const start = document.getElementById('start');
 // start.addEventListener('click', changeState);

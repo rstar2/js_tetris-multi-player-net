@@ -20,11 +20,11 @@ export default class Tetris {
         if (controller) {
             document.addEventListener('keydown', this._handleKeydown.bind(this, [37, 39, 219, 221, 40]));
 
-            this._timer = new Timer({ update: this._drop, render: this._render }, 1, false);
+            this._timer = new Timer({ update: this._drop.bind(this), render: this._render.bind(this) }, 1, false);
         }
 
         this._arena = matrix.create(arenaW, arenaH);
-        this._player = new Player(controller, arenaW / 2);
+        this._player = new Player(arenaW / 2);
 
         // dynamic members
         this._skipNextNotForced = false;
@@ -40,6 +40,10 @@ export default class Tetris {
         return this._player.score;
     }
 
+    start() {
+        this._timer.start();
+    }
+
     reset() {
         // reset initial members
         this._ended = null;
@@ -51,16 +55,21 @@ export default class Tetris {
 
         // reset player's score
         this._player.resetScore();
-        this._renderScore();
+
+        this._controller.sendUpdate({
+            arena: this._arena,
+            score: this.getScore()
+        });
 
         // generate a new piece
         this._generatePiece();
         // render all till now 
         this._render();
+        this._renderScore();
     }
 
-    update({arena, piece, pos, score, ended}) {
-        let updated = this._player.update({piece, pos, score});
+    update({ arena, piece, pos, score, ended }) {
+        let updated = this._player.update({ piece, pos, score });
         if (arena) {
             updated = true;
             this._arena = arena;
@@ -114,9 +123,11 @@ export default class Tetris {
             if (score) {
                 this._player.addScore(score);
                 this._renderScore();
+
+                this._controller.sendUpdate({ score: this.getScore() });
             }
 
-            this._controller.sendUpdate({arena : this._arena});
+            this._controller.sendUpdate({ arena: this._arena });
 
             // generate a new piece for the player - it will be also started form the top
             this._generatePiece();
@@ -125,9 +136,14 @@ export default class Tetris {
             if (matrix.isCollide(this._arena, this._player)) {
                 // notify the controller that this player-tetris 'ended' (though it may still not have lost)
                 this._timer.stop();
-                this._controller.sendEnd();
+                this._render();
+                this._controller.sendUpdate({ ended: true });
             }
+
+            return;
         }
+
+        this._controller.sendUpdate({ pos: this._player.pos });
     }
 
     _generatePiece() {
@@ -135,6 +151,11 @@ export default class Tetris {
         // get next piece from the controller
         const nextPiece = this._controller.getPiece(this._pieceCount);
         this._player.resetWith(nextPiece, 'red');
+
+        this._controller.sendUpdate({
+            piece: this._player.piece,
+            pos: this._player.pos
+        });
     }
 
     _move(isLeft) {
@@ -142,7 +163,10 @@ export default class Tetris {
         if (matrix.isCollide(this._arena, this._player)) {
             // reached the left/right borders
             this._player.move(isLeft ? 1 : -1);
+            return;
         }
+
+        this._controller.sendUpdate({ pos: this._player.pos });
     }
 
     _rotate(isLeft) {
@@ -163,14 +187,20 @@ export default class Tetris {
             // reached the left/right borders
             this._player.move(offset);
             offset = (Math.abs(offset) + 1) * (offset > 0 ? -1 : 1);
+
+            // we can't keep checking forever - break if no "collision-free" position is possible
+            // so revert to starting position
             if (offset > this._player.piece[0].length) {
-                // we can't keep checking forever - break if no "collision-free" position is possible
-                // so revert to starting position
                 this._player.pos.x = oldPosX;
                 this._player.rotate(!isLeft);
-                break;
+                return;
             }
         }
+
+        this._controller.sendUpdate({
+            piece: this._player.piece,
+            pos: this._player.pos
+        });
     }
 
     _renderScore() {
@@ -179,28 +209,37 @@ export default class Tetris {
         }
     }
 
+    /**
+     * 
+     * @param {Number[]} keys 
+     * @param {*} event 
+     */
     _handleKeydown(keys, event) {
         if (this._ended) {
             return;
         }
 
-        switch (event.keyCode) {
-            case keys[0]:           // left
-                this._move(true);
-                break;
-            case keys[1]:           // right
-                this._move(false);
-                break;
-            case keys[2]:           // rotate left
-                this._rotate(true);
-                break;
-            case keys[3]:           // rotate right
-                this._rotate(false);
-                break;
-            case keys[4]:           // drop
-                this.drop(true);
-                break;
+        let handled = keys.indexOf(event.keyCode);
+        if (handled) {
+            event.preventDefault();
 
+            switch (event.keyCode) {
+                case keys[0]:           // left
+                    this._move(true);
+                    break;
+                case keys[1]:           // right
+                    this._move(false);
+                    break;
+                case keys[2]:           // rotate left
+                    this._rotate(true);
+                    break;
+                case keys[3]:           // rotate right
+                    this._rotate(false);
+                    break;
+                case keys[4]:           // drop
+                    this._drop(true);
+                    break;
+            }
         }
     }
 

@@ -12,6 +12,9 @@ class Client {
     }
 
     get session() {
+        if (!this._session) {
+            throw new Error(`Cannot request session from a not-attached client ${this._id}`);
+        }
         return this._session;
     }
 
@@ -39,18 +42,8 @@ class Client {
      * @param {String} type 
      * @param {Object} data 
      */
-    receive(type, data) {
-        log('Message received', type, data);
-
-    }
-
-    /**
-     * 
-     * @param {String} type 
-     * @param {Object} data 
-     */
     send(type, data) {
-        log('Message send', type, data);
+        log('Client', this._id, 'Send message', type, data);
         const msg = { type };
         if (data) {
             msg.data = data;

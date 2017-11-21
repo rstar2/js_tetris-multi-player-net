@@ -1,5 +1,3 @@
-
-
 class Session {
     constructor(id) {
         this._id = id;

@@ -12,6 +12,8 @@ const MSG_TYPE = {
     SESSION_CREATED: 'session-created',
     SESSION_JOIN: 'session-join',
     SESSION_STATE: 'session-state',
+
+    UPDATE_STATE: 'update-state',
 };
 
 const sessions = new Map();
@@ -47,9 +49,9 @@ server.on('connection', conn => {
             case MSG_TYPE.SESSION_JOIN:
                 onSessionJoin(client, data.id);
                 break;
-            default:
-                // finally send default messages to the client
-                client.receive(type, data);
+            case MSG_TYPE.UPDATE_STATE:
+                onUpdateState(client, data);
+                break;
         }
 
     });
@@ -100,12 +102,22 @@ function getSession(id, createIfNotExists = false) {
 
 /**
  * 
- * @param {Session} session 
+ * @param {Client} client 
  * @param {String} type 
  * @param {Object} [data] 
  */
-function broadcastMessage(session, type, data) {
-    session.clients.forEach(client => client.send(type, data));
+function broadcastMessage(client, type, data) {
+    if (!client.isAttachedTo()) {
+        throw new Error(`Client ${client} is not in a session in order to broadcast messages `)
+    }
+    const session = client.session;
+    session.clients.filter(aClient => aClient !== client).
+        forEach(aClient => {
+            aClient.send(type, {
+                ...data,
+                peer: client.id
+            });
+        });
 }
 
 /**
@@ -144,4 +156,16 @@ function onSessionJoin(client, sessionId) {
 
     // broadcast the current room's/session's state
     broadcastSessionState(session);
+}
+
+/**
+ * 
+ * @param {Client} client 
+ * @param {Object} state 
+ */
+function onUpdateState(client, state) {
+    log('Update state for client ', client.id);
+
+    // broadcast the current client's state to all other clients of the session
+    broadcastMessage(client, MSG_TYPE.UPDATE_STATE, {state});
 }

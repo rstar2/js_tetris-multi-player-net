@@ -19,9 +19,11 @@ export default class ConnectionManager {
 
     /**
      * 
+     * @param {{init: Function, checkEnded: Function}} controller 
      * @param {TetrisManager} tetrisManager 
      */
-    constructor(tetrisManager) {
+    constructor(controller, tetrisManager) {
+        this._controller = controller;
         this._tetrisManager = tetrisManager;
         this._conn = null;
 
@@ -49,6 +51,7 @@ export default class ConnectionManager {
         if (sessionId) {
             // join a room/session
             this.send(MSG_TYPE.SESSION_JOIN, { id: sessionId });
+            this._controller.init();
         } else {
             // create new room/session
             this.send(MSG_TYPE.SESSION_CREATE);
@@ -82,6 +85,8 @@ export default class ConnectionManager {
      */
     _onReceivedSessionCreated(sessionId) {
         window.location.hash = sessionId;
+
+        this._controller.init();
     }
 
     /**
@@ -122,7 +127,8 @@ export default class ConnectionManager {
             tetris.update(state);
             const { ended } = state;
             if (ended) {
-                // TODO: check if all tetrises are finally ended
+                // check if all tetrises are finally ended
+                this._controller.checkEnded();
             }
         }
     }

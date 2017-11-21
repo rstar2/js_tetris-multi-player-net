@@ -6,7 +6,7 @@
   "scripts": {
     "client": "serve ./public",
     "server": "node ./server/main.js",
-    "start": "concurrently  --kill-others --names \"SERVER, CLIENT\" -c \"bgBlue.bold, bgMagenta.bold\" \"npm run client\" \"npm run server\""
+    "start": "concurrently  --kill-others --names \"CLIENT, SERVER\" -c \"bgBlue.bold, bgMagenta.bold\" \"npm run client\" \"npm run server\""
   },
   "repository": {
     "type": "git",
