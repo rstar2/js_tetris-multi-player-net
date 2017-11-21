@@ -9,17 +9,21 @@ function log() {
 export const MSG_TYPE = {
     SESSION_CREATE: 'session-create',
     SESSION_CREATED: 'session-created',
-
     SESSION_JOIN: 'session-join',
     SESSION_STATE: 'session-state',
+    SESSION_DESTROYED: 'session-destroyed',
+
     UPDATE_STATE: 'update-state',
 };
+
+// TODO: Merge the TetrisManager and the 'controller', TetrisManager to be som-kind of controller,
+// not just GUI manager
 
 export default class ConnectionManager {
 
     /**
      * 
-     * @param {{init: Function, checkEnded: Function}} controller 
+     * @param {{init: Function, destroy: Function}} controller 
      * @param {TetrisManager} tetrisManager 
      */
     constructor(controller, tetrisManager) {
@@ -73,6 +77,9 @@ export default class ConnectionManager {
             case MSG_TYPE.SESSION_STATE:
                 this._onReceivedSessionState(data.current, data.peers);
                 break;
+            case MSG_TYPE.SESSION_DESTROYED:
+                this._onReceivedSessionDestroyed();
+                break;
             case MSG_TYPE.UPDATE_STATE:
                 this._onReceivedUpdateState(data.peer, data.state);
                 break;
@@ -115,6 +122,11 @@ export default class ConnectionManager {
         });
     }
 
+    _onReceivedSessionDestroyed() {
+        this._controller.destroy();
+        this._tetrisManager.destroy();
+    }
+
     /**
      * 
      * @param {String} peer 
@@ -127,8 +139,7 @@ export default class ConnectionManager {
             tetris.update(state);
             const { ended } = state;
             if (ended) {
-                // check if all tetrises are finally ended
-                this._controller.checkEnded();
+                // TODO: check if all tetrises are finally ended
             }
         }
     }

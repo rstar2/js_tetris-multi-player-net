@@ -1,10 +1,17 @@
 const log = require('./debug').log;
+const logError = require('./debug').error;
 
 class Client {
+    /**
+     * 
+     * @param {WebSocket} conn
+     * @param {String} id 
+     */
     constructor(conn, id) {
         this._conn = conn;
         this._id = id;
         this._session = null;
+        this._isCreator  = false;
     }
 
     get id() {
@@ -22,6 +29,10 @@ class Client {
         return this._session && this._session.id;
     }
 
+    get isCreator() {
+        return this._isCreator;
+    }
+
     isAttachedTo(session) {
         if (session) {
             return this._session === session;
@@ -29,12 +40,17 @@ class Client {
         return !!this._session;
     }
 
-    attachTo(session) {
+    attachTo(session, isCreator = false) {
         this._session = session;
+        this._isCreator = isCreator;
     }
 
     detach() {
         this._session = null;
+    }
+
+    close() {
+        this._conn.close();
     }
 
     /**
@@ -50,7 +66,7 @@ class Client {
         }
         this._conn.send(JSON.stringify(msg), function ack(err) {
             if (err) {
-                console.error('Message failed', type, data);
+                logError('Message failed', type, data);
             }
         });
     }

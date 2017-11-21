@@ -44,6 +44,10 @@ export default class Tetris {
         this._timer.start();
     }
 
+    stop() {
+        this._timer.stop();
+    }
+
     reset() {
         // reset initial members
         this._ended = null;
@@ -219,24 +223,24 @@ export default class Tetris {
             return;
         }
 
-        let handled = keys.indexOf(event.keyCode);
-        if (handled) {
+        let keyIndex = keys.indexOf(event.keyCode);
+        if (keyIndex >= 0) {
             event.preventDefault();
 
-            switch (event.keyCode) {
-                case keys[0]:           // left
+            switch (keyIndex) {
+                case 0:           // left
                     this._move(true);
                     break;
-                case keys[1]:           // right
+                case 1:           // right
                     this._move(false);
                     break;
-                case keys[2]:           // rotate left
+                case 2:           // rotate left
                     this._rotate(true);
                     break;
-                case keys[3]:           // rotate right
+                case 3:           // rotate right
                     this._rotate(false);
                     break;
-                case keys[4]:           // drop
+                case 4:           // drop
                     this._drop(true);
                     break;
             }

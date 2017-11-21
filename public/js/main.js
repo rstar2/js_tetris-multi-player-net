@@ -3,6 +3,8 @@ import * as matrix from './matrix.js';
 import TetrisManager from './TetrisManager.js';
 import ConnectionManager, { MSG_TYPE } from './ConnectionManager.js';
 
+// TODO: simultaneous start
+// TODO: same pieces
 
 const controller = {
     init() {
@@ -10,8 +12,8 @@ const controller = {
         tetrisLocal.start();
     },
 
-    checkEnded() {
-        // TODO: check all tetrises
+    destroy() {
+        tetrisLocal.stop();
     },
 
     getPiece(pieceCount) {
@@ -21,7 +23,7 @@ const controller = {
     },
 
     sendUpdate(state) {
-        // send local tetris'es last updated state
+        // send local tetris last updated state
         conManager.send(MSG_TYPE.UPDATE_STATE, state);
     }
 };

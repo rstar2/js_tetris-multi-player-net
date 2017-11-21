@@ -23,13 +23,14 @@ class Session {
     /**
      * 
      * @param {Client} client 
+     * @param {Boolean} isCreator 
      */
-    join(client) {
+    join(client, isCreator) {
         if (client.isAttachedTo()) {
             throw new Error(`Client is already in a session ${client.sessionId}.`);
         }
 
-        client.attachTo(this);
+        client.attachTo(this, isCreator);
 
         this._clients.add(client);
     }

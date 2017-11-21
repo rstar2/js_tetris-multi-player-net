@@ -12,6 +12,7 @@ const MSG_TYPE = {
     SESSION_CREATED: 'session-created',
     SESSION_JOIN: 'session-join',
     SESSION_STATE: 'session-state',
+    SESSION_DESTROYED: 'session-destroyed',
 
     UPDATE_STATE: 'update-state',
 };
@@ -27,8 +28,18 @@ server.on('connection', conn => {
         const session = client.session;
         if (session) {
             session.leave(client);
+
+            if (client.isCreator) {
+                log('Session creator has disconnected', client.id);
+                // notify all remaining clients
+                broadcastSessionDestroy(session);
+
+                // destroy current session and clear clients (they will close their connections also)
+                session.clients.forEach(client => client.close());
+            }
+
             if (session.isEmpty) {
-                log('Session destroyed ', session.id);
+                log('Session destroyed', session.id);
                 sessions.delete(session.id);
             }
 
@@ -88,16 +99,10 @@ function createSession(id = generateId()) {
 
 /**
  * @param {String} id
- * @param {Boolean} createIfNotExists
  * @returns {Session|null} 
  */
-function getSession(id, createIfNotExists = false) {
-    let session = sessions.get(id);
-    if (!session && true === createIfNotExists) {
-        session = createSession(id);
-    }
-
-    return session;
+function getSession(id) {
+    return sessions.get(id);
 }
 
 /**
@@ -108,13 +113,13 @@ function getSession(id, createIfNotExists = false) {
  */
 function broadcastMessage(client, type, data) {
     if (!client.isAttachedTo()) {
-        throw new Error(`Client ${client} is not in a session in order to broadcast messages `)
+        throw new Error(`Client ${client} is not in a session in order to broadcast messages`);
     }
     const session = client.session;
     session.clients.filter(aClient => aClient !== client).
         forEach(aClient => {
             aClient.send(type, {
-                ...data,
+                state: data,
                 peer: client.id
             });
         });
@@ -126,10 +131,19 @@ function broadcastMessage(client, type, data) {
  */
 function broadcastSessionState(session) {
     const clients = session.clients;
+    const clientCreator = clients.find(client => client.isCreator);
+
+    // if the client created the session is missing (e.g. disconnected)
+    // the the session is in "disconnecting" state - disconnecteding all its clients
+    // so no need to send any state event
+    if (!clientCreator) {
+        return;
+    }
 
     clients.forEach(client => {
         client.send(MSG_TYPE.SESSION_STATE, {
             current: client.id,
+            creator: clientCreator.id,
             peers: clients.map(client => client.id)
         });
     });
@@ -137,11 +151,20 @@ function broadcastSessionState(session) {
 
 /**
  * 
+ * @param {Session} session 
+ */
+function broadcastSessionDestroy(session) {
+    session.clients.forEach(client => client.send(MSG_TYPE.SESSION_DESTROYED));
+}
+
+
+/**
+ * 
  * @param {Client} client 
  */
 function onSessionCreate(client) {
     const session = createSession();
-    session.join(client);
+    session.join(client, true);
     client.send(MSG_TYPE.SESSION_CREATED, { id: session.id });
 }
 
@@ -150,8 +173,13 @@ function onSessionCreate(client) {
  * @param {Client} client 
  */
 function onSessionJoin(client, sessionId) {
-    const session = getSession(sessionId, true);
-    session.join(client);
+    let createdNow = false;
+    let session = getSession(sessionId);
+    if (!session) {
+        session = createSession(sessionId);
+        createdNow = true;
+    }
+    session.join(client, createdNow);
     log('Session joined ', session.id, session.size);
 
     // broadcast the current room's/session's state
@@ -167,5 +195,5 @@ function onUpdateState(client, state) {
     log('Update state for client ', client.id);
 
     // broadcast the current client's state to all other clients of the session
-    broadcastMessage(client, MSG_TYPE.UPDATE_STATE, {state});
+    broadcastMessage(client, MSG_TYPE.UPDATE_STATE, state);
 }
