@@ -2,8 +2,13 @@ const isLOG = true;
 function log() {
     if (isLOG) {
         // eslint-disable-next-line
-        console.log.apply(this, arguments);
+        console.log(...arguments);
     }
+}
+
+function warn() {
+    // eslint-disable-next-line
+    console.log(...arguments);
 }
 
 export const MSG_TYPE = {
@@ -133,14 +138,29 @@ export default class ConnectionManager {
      * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state 
      */
     _onReceivedUpdateState(peer, state) {
-        const tetris = this._peers.get(peer);
-        if (tetris) {
-            // send the update state to the specific tetris
-            tetris.update(state);
-            const { ended } = state;
-            if (ended) {
-                // TODO: check if all tetrises are finally ended
+        const { ended } = state;
+        if (peer) {
+            const tetris = this._peers.get(peer);
+            if (tetris) {
+                // send the update state to the specific tetris
+                tetris.update(state);
+            } else {
+                warn(`No tetris found for peer ${peer}`);
+                return;
             }
+        } else {
+            // this means that the message is for this current peer
+            // Note it should be only with the server-time ended property set
+            if (ended) {
+                // TODO: set owner's end time
+            } else {
+                warn('Illegal update-state message for the current owner');
+                return;
+            }
+        }
+
+        if (ended) {
+            // TODO: check if all tetrises are finally ended
         }
     }
 

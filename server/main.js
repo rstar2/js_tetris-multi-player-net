@@ -134,7 +134,7 @@ function broadcastSessionState(session) {
     const clientCreator = clients.find(client => client.isCreator);
 
     // if the client created the session is missing (e.g. disconnected)
-    // the the session is in "disconnecting" state - disconnecteding all its clients
+    // the the session is in "disconnecting" state - disconnecting all its clients
     // so no need to send any state event
     if (!clientCreator) {
         return;
@@ -180,7 +180,7 @@ function onSessionJoin(client, sessionId) {
         createdNow = true;
     }
     session.join(client, createdNow);
-    log('Session joined ', session.id, session.size);
+    log('Session joined', session.id, session.size);
 
     // broadcast the current room's/session's state
     broadcastSessionState(session);
@@ -192,7 +192,15 @@ function onSessionJoin(client, sessionId) {
  * @param {Object} state 
  */
 function onUpdateState(client, state) {
-    log('Update state for client ', client.id);
+    log('Update state for client', client.id);
+
+    // convert the "ended" boolean to a common for all server-time
+    if (state.ended) {
+        state.ended = new Date().getTime();
+
+        // TODO: also send such event to the ended client
+        client.send(MSG_TYPE.UPDATE_STATE, { ended: state.ended });
+    }
 
     // broadcast the current client's state to all other clients of the session
     broadcastMessage(client, MSG_TYPE.UPDATE_STATE, state);
