@@ -1,42 +1,10 @@
-import { PIECES } from './pieces.js';
-import * as matrix from './matrix.js';
-import TetrisManager from './TetrisManager.js';
-import ConnectionManager, { MSG_TYPE } from './ConnectionManager.js';
+import Controller from './Controller.js';
+
+new Controller(document.getElementById('player-template'),
+    document.querySelector('.container'), 'ws://localhost:9000');
 
 // TODO: simultaneous start
 // TODO: same pieces
-
-const controller = {
-    init() {
-        tetrisLocal.reset();
-        tetrisLocal.start();
-    },
-
-    destroy() {
-        tetrisLocal.stop();
-    },
-
-    getPiece(pieceCount) {
-        // generate a new random piece for each tetris
-        const index = Math.floor(Math.random() * PIECES.length);
-        return matrix.clone(PIECES[index]);
-    },
-
-    sendUpdate(state) {
-        // send local tetris last updated state
-        conManager.send(MSG_TYPE.UPDATE_STATE, state);
-    }
-};
-
-const tetrisManager = new TetrisManager(document.getElementById('player-template'),
-    document.querySelector('.container'));
-// create the current local tetris
-const tetrisLocal = tetrisManager.create(controller);
-
-const conManager = new ConnectionManager(controller, tetrisManager);
-conManager.connect('ws://localhost:9000');
-
-tetrisManager.reset();
 
 // const start = document.getElementById('start');
 // start.addEventListener('click', changeState);

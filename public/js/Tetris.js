@@ -4,6 +4,7 @@ import Timer from './Timer.js';
 
 let count = 0;
 export default class Tetris {
+
     constructor(controller, canvas, arenaW, arenaH, scale, score) {
         this._controller = controller;
         this._canvas = canvas;
@@ -29,7 +30,7 @@ export default class Tetris {
         // dynamic members
         this._skipNextNotForced = false;
         this._pieceCount = 0;
-        this._ended = null; // ended date
+        this._ended = false;
     }
 
     getId() {
@@ -38,6 +39,10 @@ export default class Tetris {
 
     getScore() {
         return this._player.score;
+    }
+
+    getEnded() {
+        return this._ended;
     }
 
     start() {
@@ -50,7 +55,7 @@ export default class Tetris {
 
     reset() {
         // reset initial members
-        this._ended = null;
+        this._ended = false;
         this._skipNextNotForced = false;
         this._pieceCount = 0;
 
@@ -141,6 +146,7 @@ export default class Tetris {
                 // notify the controller that this player-tetris 'ended' (though it may still not have lost)
                 this._timer.stop();
                 this._render();
+                this._ended = true;
                 this._controller.sendUpdate({ ended: true });
             }
 

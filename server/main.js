@@ -117,12 +117,7 @@ function broadcastMessage(client, type, data) {
     }
     const session = client.session;
     session.clients.filter(aClient => aClient !== client).
-        forEach(aClient => {
-            aClient.send(type, {
-                state: data,
-                peer: client.id
-            });
-        });
+        forEach(aClient => aClient.send(type, data));
 }
 
 /**
@@ -194,14 +189,6 @@ function onSessionJoin(client, sessionId) {
 function onUpdateState(client, state) {
     log('Update state for client', client.id);
 
-    // convert the "ended" boolean to a common for all server-time
-    if (state.ended) {
-        state.ended = new Date().getTime();
-
-        // TODO: also send such event to the ended client
-        client.send(MSG_TYPE.UPDATE_STATE, { ended: state.ended });
-    }
-
     // broadcast the current client's state to all other clients of the session
-    broadcastMessage(client, MSG_TYPE.UPDATE_STATE, state);
+    broadcastMessage(client, MSG_TYPE.UPDATE_STATE, { state, peer: client.id });
 }

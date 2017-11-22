@@ -1,15 +1,5 @@
-const isLOG = true;
-function log() {
-    if (isLOG) {
-        // eslint-disable-next-line
-        console.log(...arguments);
-    }
-}
-
-function warn() {
-    // eslint-disable-next-line
-    console.log(...arguments);
-}
+import * as debug from './debug.js';
+import Controller from './Controller.js';
 
 export const MSG_TYPE = {
     SESSION_CREATE: 'session-create',
@@ -21,19 +11,13 @@ export const MSG_TYPE = {
     UPDATE_STATE: 'update-state',
 };
 
-// TODO: Merge the TetrisManager and the 'controller', TetrisManager to be som-kind of controller,
-// not just GUI manager
-
 export default class ConnectionManager {
 
     /**
-     * 
-     * @param {{init: Function, destroy: Function}} controller 
-     * @param {TetrisManager} tetrisManager 
+     * @param {Controller} controller 
      */
-    constructor(controller, tetrisManager) {
+    constructor(controller) {
         this._controller = controller;
-        this._tetrisManager = tetrisManager;
         this._conn = null;
 
         this._peers = new Map();
@@ -43,7 +27,7 @@ export default class ConnectionManager {
         this._conn = new WebSocket(address);
 
         this._conn.addEventListener('open', () => {
-            log('Connection established');
+            debug.log('Connection established');
 
             this.initSession();
         });
@@ -73,7 +57,7 @@ export default class ConnectionManager {
      * @param {Object} data 
      */
     _onReceived(type, data) {
-        log('Message received', type, ' ', data);
+        debug.log('Message received', type, ' ', data);
 
         switch (type) {
             case MSG_TYPE.SESSION_CREATED:
@@ -112,7 +96,7 @@ export default class ConnectionManager {
         // add all newly connected peers and draw a Tetris for them
         others.forEach(peer => {
             if (!this._peers.has(peer)) {
-                this._peers.set(peer, this._tetrisManager.create());
+                this._peers.set(peer, this._controller.createTetris());
             }
         });
 
@@ -122,14 +106,13 @@ export default class ConnectionManager {
             // so remove it
             if (-1 === others.indexOf(peer)) {
                 this._peers.delete(peer);
-                this._tetrisManager.remove(tetris);
+                this._controller.removeTetris(tetris);
             }
         });
     }
 
     _onReceivedSessionDestroyed() {
         this._controller.destroy();
-        this._tetrisManager.destroy();
     }
 
     /**
@@ -138,29 +121,46 @@ export default class ConnectionManager {
      * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state 
      */
     _onReceivedUpdateState(peer, state) {
-        const { ended } = state;
         if (peer) {
             const tetris = this._peers.get(peer);
             if (tetris) {
                 // send the update state to the specific tetris
                 tetris.update(state);
             } else {
-                warn(`No tetris found for peer ${peer}`);
+                debug.warn(`No tetris found for peer ${peer}`);
                 return;
             }
         } else {
-            // this means that the message is for this current peer
-            // Note it should be only with the server-time ended property set
-            if (ended) {
-                // TODO: set owner's end time
-            } else {
-                warn('Illegal update-state message for the current owner');
-                return;
-            }
+            debug.warn('Illegal update-state message for unspecified peer')
+            return;
         }
 
-        if (ended) {
-            // TODO: check if all tetrises are finally ended
+        // check if all tetrises are finally ended
+        if (state.ended) {
+            const all = [...this._peers.values(), this._controller.tetris];
+            if (all.every(tetris => tetris.getEnded())) {
+                // TODO: Why it's not working
+                const winners = all.reduce((acc, tetris) => {
+                    if (acc.length) {
+                        const winnersScore = acc[0].getScore();
+                        const score = tetris.getScore();
+                        if (score > winnersScore) {
+                            // this is the new winner
+                            acc = [tetris];
+                        } else if (score === winnersScore) {
+                            //this is also a winner
+                            acc.push[tetris];
+                        }
+                    } else {
+                        // this is the first - assume it's a winner 
+                        acc.push[tetris];
+                    }
+
+                    return acc;
+                }, []);
+                this._controller.winners(winners);
+            }
+
         }
     }
 
@@ -170,7 +170,7 @@ export default class ConnectionManager {
      * @param {Object} data 
      */
     send(type, data) {
-        log('Message send', type, ' ', data);
+        debug.log('Message send', type, ' ', data);
         const msg = { type };
         if (data) {
             msg.data = data;

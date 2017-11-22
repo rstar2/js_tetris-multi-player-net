@@ -1,4 +1,5 @@
 import Tetris from './Tetris.js';
+import Controller from './Controller.js';
 
 // we have the game arena as 12x20 matrix tiles
 // wih scale of 20 this means 240x400 pixels canvas
@@ -7,18 +8,24 @@ const ARENA_HEIGHT = 20;
 const SCALE = 20;
 
 export default class TetrisManager {
-    constructor(playerTemplate, container) {
-        this._playerTemplate = playerTemplate;
+
+    /**
+     * 
+     * @param {HTMLElement} template 
+     * @param {HTMLElement} container 
+     */
+    constructor(template, container) {
+        this._template = template;
         this._container = container;
     }
 
     /**
      * 
-     * @param {Object} [controller]
+     * @param {Controller} [controller]
      * @returns {Tetris} 
      */
     create(controller) {
-        const player = document.importNode(this._playerTemplate.content, true).children[0];
+        const player = document.importNode(this._template.content, true).children[0];
         this._container.appendChild(player);
 
         const tetris = new Tetris(controller, player.querySelector('.screen'),
@@ -40,11 +47,13 @@ export default class TetrisManager {
 
     /**
      * 
-     * @param {Tetris} tetris 
+     * @param {Tetris[]} tetrises
      */
-    renderWinner(tetris) {
-        const player = document.getElementById(tetris.getId());
-        this._winner(player, true);
+    winners(tetrises) {
+        tetrises.forEach(tetris => {
+            const player = document.getElementById(tetris.getId());
+            this._winner(player, true);
+        });
     }
 
     /**
