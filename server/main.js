@@ -124,7 +124,7 @@ function broadcastMessage(client, type, data) {
  * 
  * @param {Session} session 
  */
-function broadcastSessionState(session) {
+function broadcastSessionState(session, clientJoined) {
     const clients = session.clients;
     const clientCreator = clients.find(client => client.isCreator);
 
@@ -135,12 +135,18 @@ function broadcastSessionState(session) {
         return;
     }
 
+    const peers = clients.map(client => client.id);
+
     clients.forEach(client => {
-        client.send(MSG_TYPE.SESSION_STATE, {
+        const data = {
             current: client.id,
             creator: clientCreator.id,
-            peers: clients.map(client => client.id)
-        });
+            peers
+        }
+        if (client === clientJoined) {
+            data.pieces = serializeMap(session.pieces);
+        }
+        client.send(MSG_TYPE.SESSION_STATE, data);
     });
 }
 
@@ -160,7 +166,17 @@ function broadcastSessionDestroy(session) {
 function onSessionCreate(client) {
     const session = createSession();
     session.join(client, true);
-    client.send(MSG_TYPE.SESSION_CREATED, { id: session.id });
+    client.send(MSG_TYPE.SESSION_CREATED, { id: session.id, pieces: serializeMap(session.pieces) });
+}
+
+/**
+ * @param {Map<Number, Number} map
+ * @return {[Number, Number][]}
+ */
+function serializeMap(map) {
+    // note here I serialize the Map<Number, Number> to [Number, Number][] with "entries = [...map]",
+    // that later could be deserialize with: "map = new Map(entries)""
+    return [...map];
 }
 
 /**
@@ -178,7 +194,7 @@ function onSessionJoin(client, sessionId) {
     log('Session joined', session.id, session.size);
 
     // broadcast the current room's/session's state
-    broadcastSessionState(session);
+    broadcastSessionState(session, client);
 }
 
 /**

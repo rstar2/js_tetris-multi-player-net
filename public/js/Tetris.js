@@ -1,3 +1,4 @@
+import { PIECES } from './pieces.js';
 import * as matrix from './matrix.js';
 import Player from './Player.js';
 import Timer from './Timer.js';
@@ -28,9 +29,10 @@ export default class Tetris {
         this._player = new Player(arenaW / 2);
 
         // dynamic members
-        this._skipNextNotForced = false;
-        this._pieceCount = 0;
         this._ended = false;
+        this._skipNextNotForced = false;
+        this._pieceSeq = 0;
+        this._pieceQueue = new Map;
     }
 
     getId() {
@@ -53,11 +55,16 @@ export default class Tetris {
         this._timer.stop();
     }
 
-    reset() {
+    /**
+     * 
+     * @param {Map} pieces
+     */
+    reset(pieces) {
         // reset initial members
         this._ended = false;
         this._skipNextNotForced = false;
-        this._pieceCount = 0;
+        this._pieceSeq = 0;
+        this._pieceQueue = pieces;
 
         // reset the arena
         matrix.reset(this._arena);
@@ -157,11 +164,12 @@ export default class Tetris {
     }
 
     _generatePiece() {
-        this._pieceCount++;
-        // get next piece from the controller
-        const nextPiece = this._controller.getPiece(this._pieceCount);
+        const nextPieceIndex = this._pieceQueue.get(this._pieceSeq);
+        const nextPiece = matrix.clone(PIECES[nextPieceIndex]);
+
         this._player.resetWith(nextPiece, 'red');
 
+        this._pieceSeq++;
         this._controller.sendUpdate({
             piece: this._player.piece,
             pos: this._player.pos

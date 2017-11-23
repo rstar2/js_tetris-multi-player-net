@@ -23,6 +23,10 @@ export default class ConnectionManager {
         this._peers = new Map();
     }
 
+    /**
+     * 
+     * @param {String} address 
+     */
     connect(address) {
         this._conn = new WebSocket(address);
 
@@ -43,12 +47,22 @@ export default class ConnectionManager {
         const sessionId = window.location.hash.split('#')[1];
         if (sessionId) {
             // join a room/session
-            this.send(MSG_TYPE.SESSION_JOIN, { id: sessionId });
-            this._controller.init();
+            this._send(MSG_TYPE.SESSION_JOIN, { id: sessionId });
         } else {
             // create new room/session
-            this.send(MSG_TYPE.SESSION_CREATE);
+            this._send(MSG_TYPE.SESSION_CREATE);
         }
+    }
+
+    /**
+     * 
+     * @param {Object} state 
+     */
+    sendUpdate(state) {
+        this._send(MSG_TYPE.UPDATE_STATE, state);
+
+        // check if local tetris has ended then if all tetrises are ended and show winner(s)
+        this._checkEnded(state);
     }
 
     /**
@@ -61,10 +75,10 @@ export default class ConnectionManager {
 
         switch (type) {
             case MSG_TYPE.SESSION_CREATED:
-                this._onReceivedSessionCreated(data.id);
+                this._onReceivedSessionCreated(data.id, this._deserializeMap(data.pieces));
                 break;
             case MSG_TYPE.SESSION_STATE:
-                this._onReceivedSessionState(data.current, data.peers);
+                this._onReceivedSessionState(data.current, data.peers, this._deserializeMap(data.pieces));
                 break;
             case MSG_TYPE.SESSION_DESTROYED:
                 this._onReceivedSessionDestroyed();
@@ -76,21 +90,36 @@ export default class ConnectionManager {
     }
 
     /**
-     * 
-     * @param {String} sessionId 
+     * @param {[Number, Number][]} [pieces]
+     * @returns {Map<Number, Number>}
      */
-    _onReceivedSessionCreated(sessionId) {
+    _deserializeMap(pieces) {
+        return pieces && new Map(pieces);
+    }
+
+    /**
+     * 
+     * @param {String} sessionId
+     * @param {Map<Number, Number>} pieces
+     */
+    _onReceivedSessionCreated(sessionId, pieces) {
         window.location.hash = sessionId;
 
-        this._controller.init();
+        this._controller.init(pieces);
     }
 
     /**
      * 
      * @param {String} currentPeer 
      * @param {String[]} allPeers 
+     * @param {Map<Number, Number>} [pieces]
      */
-    _onReceivedSessionState(currentPeer, allPeers) {
+    _onReceivedSessionState(currentPeer, allPeers, pieces) {
+        // it will be sent only once on the first MSG_TYPE.SESSION_JOIN request
+        if (pieces) {
+            this._controller.init(pieces);
+        }
+
         const others = allPeers.filter(id => currentPeer !== id);
 
         // add all newly connected peers and draw a Tetris for them
@@ -135,6 +164,29 @@ export default class ConnectionManager {
             return;
         }
 
+        // check if local tetris has ended then if all tetrises are ended and show winner(s)
+        this._checkEnded(state);
+    }
+
+    /**
+     * 
+     * @param {String} type 
+     * @param {Object} data 
+     */
+    _send(type, data) {
+        debug.log('Message send', type, ' ', data);
+        const msg = { type };
+        if (data) {
+            msg.data = data;
+        }
+        this._conn.send(JSON.stringify(msg));
+    }
+
+    /**
+     * 
+     * @param {Object} data 
+     */
+    _checkEnded(state) {
         // check if all tetrises are finally ended
         if (state.ended) {
             const all = [...this._peers.values(), this._controller.tetris];
@@ -159,22 +211,7 @@ export default class ConnectionManager {
                 }, []);
                 this._controller.winTetris(winners);
             }
-
         }
-    }
-
-    /**
-     * 
-     * @param {String} type 
-     * @param {Object} data 
-     */
-    send(type, data) {
-        debug.log('Message send', type, ' ', data);
-        const msg = { type };
-        if (data) {
-            msg.data = data;
-        }
-        this._conn.send(JSON.stringify(msg));
     }
 
 }

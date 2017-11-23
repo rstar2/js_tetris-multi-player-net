@@ -4,94 +4,11 @@ new Controller(document.getElementById('player-template'),
     document.querySelector('.container'), 'ws://localhost:9000');
 
 // TODO: simultaneous start
-// TODO: same pieces
+// TODO: multiple games - start/restart and not-allowing to join a session/room while a game is running
+// TODO: don't store all the pieces in the server's session queue for each single game
 
 // const start = document.getElementById('start');
 // start.addEventListener('click', changeState);
-
-// const FEED_SAME_PIECES = true;
-// let piecesQueue = new Map();
-// let piecesCount = 0;
-
-// const controller = {
-//     getPiece(tetrisPieceCount) {
-//         let index;
-//         if (FEED_SAME_PIECES) {
-//             // use the same piece for all (note - keep track where each tetris is)
-
-//             // if someone requests a new piece - then generate it
-//             if (piecesCount < tetrisPieceCount) {
-//                 // note it should be always create with 1 maximum - e.g. next, no some that is far away in time
-//                 if (piecesCount + 1 !== tetrisPieceCount)
-//                     throw new Error(`Cannot request a piece with count ${tetrisPieceCount}`);
-
-//                 index = Math.floor(Math.random() * PIECES.length);
-//                 piecesQueue.set(tetrisPieceCount, { index, notified: 1 });
-//                 piecesCount = tetrisPieceCount;
-//             } else {
-//                 const item = piecesQueue.get(tetrisPieceCount);
-//                 if (!item) {
-//                     throw new Error(`Cannot find a piece with count ${tetrisPieceCount} - it must be expired`);
-//                 }
-
-//                 // get the same saved index from the item
-//                 index = item.index;
-//                 item.notified++;
-
-//                 // if all tetrises are notified then discard the item in the map
-//                 if (item.notified === tetrises.length) {
-//                     piecesQueue.delete(tetrisPieceCount);
-//                 }
-//             }
-
-//         } else {
-//             // generate a new random piece for each tetris
-//             index = Math.floor(Math.random() * PIECES.length);
-//         }
-//         return matrix.clone(PIECES[index]);
-//     },
-
-//     ended(tetris) {
-//         // check if there's a winner otherwise allow the other tetrises to continue playing
-//         // Note - this is made more general function - not just for 2 tetrises,
-
-//         let highest;
-//         let notEnded = 0;
-//         tetrises.forEach(tetris => {
-//             if (!tetris.isEnded()) {
-//                 notEnded++;
-//             }
-
-//             if (!highest) {
-//                 // this is the first
-//                 highest = tetris;
-//             } else if (tetris.getScore() === highest.getScore()) {
-//                 // check which tetris has the highest points
-//                 if (highest.isEnded() && (!tetris.isEnded() || tetris.getEndedDate() >= highest.getEndedDate()))
-//                     highest = tetris;
-//             } else if (tetris.getScore() > highest.getScore()) {
-//                 // check which tetris has the highest points
-//                 highest = tetris;
-//             }
-//         });
-
-//         let winner;
-//         if (notEnded === 0) {
-//             // if all tetrises has ended - so we have a winner
-//             winner = highest;
-//         } else if (notEnded === 1 && !highest.isEnded()) {
-//             // if ONLY ONE tetrises is not ended and it already has highest score so it is the winner
-//         }
-//         // otherwise we have to check the other to end
-
-//         tetris.render();
-//         if (winner) {
-//             winner.renderWinner();
-
-//             setState(STATE.STOPPED);
-//         }
-//     }
-// };
 
 // const STATE = {
 //     INIT: Symbol(0),
