@@ -131,7 +131,7 @@ export default class ConnectionManager {
                 return;
             }
         } else {
-            debug.warn('Illegal update-state message for unspecified peer')
+            debug.warn('Illegal update-state message for unspecified peer');
             return;
         }
 
@@ -139,7 +139,6 @@ export default class ConnectionManager {
         if (state.ended) {
             const all = [...this._peers.values(), this._controller.tetris];
             if (all.every(tetris => tetris.getEnded())) {
-                // TODO: Why it's not working
                 const winners = all.reduce((acc, tetris) => {
                     if (acc.length) {
                         const winnersScore = acc[0].getScore();
@@ -149,16 +148,16 @@ export default class ConnectionManager {
                             acc = [tetris];
                         } else if (score === winnersScore) {
                             //this is also a winner
-                            acc.push[tetris];
+                            acc.push(tetris);
                         }
                     } else {
                         // this is the first - assume it's a winner 
-                        acc.push[tetris];
+                        acc.push(tetris);
                     }
 
                     return acc;
                 }, []);
-                this._controller.winners(winners);
+                this._controller.winTetris(winners);
             }
 
         }
