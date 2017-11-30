@@ -10,5 +10,5 @@
 const generate = require('nanoid/generate');
 
 exports.generateId = function (len = 6, chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') {
-    return generate(chars, len)
-}
+    return generate(chars, len);
+};

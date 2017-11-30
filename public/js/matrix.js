@@ -66,7 +66,7 @@ export function isCollide(matrix, player) {
         for (let x = 0, lenCols = piece[y].length; x < lenCols; x++) {
             // check first if the piece's matrix (e.g. how it is rotated)
             if (piece[y][x] !== 0) {
-                // now check if the main matrix/arena has a "one" in that posistion
+                // now check if the main matrix/arena has a "one" in that position
                 const matrixRow = matrix[y + offsetY];
                 // we also check if matrixRow is valid row as after the offset it may not be
                 // e.g. it can be "below" the end of the matrix/arena, which in fact means bottom is reached
@@ -150,9 +150,9 @@ export function rotate(matrix, isLeft) {
                 matrix[x][y],
                 matrix[y][x]
             ] = [
-                    matrix[y][x],
-                    matrix[x][y]
-                ];
+                matrix[y][x],
+                matrix[x][y]
+            ];
         }
     }
 
@@ -167,7 +167,7 @@ export function rotate(matrix, isLeft) {
 /**
  * @param {[[]]} matrix 
  * @param {CanvasRenderingContext2D} context 
- * @param {Sring} color 
+ * @param {String} color 
  * @param {{x: Number, y: Number}} offset 
  */
 export function render(matrix, context, color = 'white', offset = { x: 0, y: 0 }) {

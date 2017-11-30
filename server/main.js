@@ -142,7 +142,7 @@ function broadcastSessionState(session, clientJoined) {
             current: client.id,
             creator: clientCreator.id,
             peers
-        }
+        };
         if (client === clientJoined) {
             data.pieces = serializeMap(session.pieces);
         }
