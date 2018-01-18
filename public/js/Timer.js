@@ -1,72 +1,3 @@
-
-
-function createWorker(callbacks, rate, renderOnUpdateOnly) {
-    let lastTime = 0;
-    let accumulator = 0;
-    let tick = 0;
-    let lastTick = 0;
-    let frameId = null;
-
-    const loop = function (time) {
-        if (!frameId) {
-            // this means this worker is meanwhile stopped, so just return 
-            return;
-        }
-
-        if (lastTime) {
-            accumulator += (time - lastTime) / 1000;
-            while (accumulator > rate) {
-                callbacks.update(rate, tick++);
-                accumulator -= rate;
-
-                if (!frameId) {
-                    // this means this worker is meanwhile stopped, so just return 
-                    return;
-                }
-            }
-        }
-
-        lastTime = time;
-        
-        // render only if at least once 'update' is called
-        // or if render is desired to be called always (this._renderOnUpdateOnly is false)
-        if (!renderOnUpdateOnly || lastTick !== tick) {
-            callbacks.render();
-        }
-        lastTick = tick;
-
-        frameId = requestAnimationFrame(loop);
-    };
-
-    return {
-        start: function () {
-            if (!frameId) {
-                frameId = requestAnimationFrame(loop);
-            }
-        },
-
-        stop: function () {
-            if (frameId) {
-                cancelAnimationFrame(frameId);
-                frameId = null;
-            }
-        },
-
-        reset: function () {
-            accumulator = 0;
-        },
-
-        pause: function () {
-            lastTime = 0;
-            this.stop();
-        },
-
-        unpause: function () {
-            this.start();
-        }
-    };
-}
-
 export default class Timer {
 
     constructor(callbacks, rate = 1 / 60, renderOnUpdateOnly = true) {
@@ -74,45 +5,59 @@ export default class Timer {
         this._rate = rate;
         this._renderOnUpdateOnly = renderOnUpdateOnly;
 
-        // if not supplied proper callback methods (update and render) then create noop/dummy ones
-        if (!callbacks.update) {
-            callbacks.update = () => { };
+        this._lastTime = 0;
+        this._accumulator = 0;
+        this._tick = 0;
+        this._lastTick = 0;
+        this._frameId = null;
+
+    }
+    // thus we can set any desired rate
+    // in order to get more realistic game simulation
+    // Note - this does not mean that the rendering/drawing needs to be
+    // with the same rate - THIS IS NOT NEEDED.
+    // What is needed is to have a deterministic game simulation
+    // (checks for collisions and etc.)
+    _loop(time) {
+        if (this._lastTime) {
+            this._accumulator += (time - this._lastTime) / 1000;
+            while (this._accumulator > this._rate) {
+                this._callbacks.update(this._rate, this._tick++);
+                this._accumulator -= this._rate;
+            }
         }
-        if (!callbacks.render) {
-            callbacks.render = () => { };
+        this._lastTime = time;
+        // render only if at least once 'update' is called
+        // or if render is desired to be called always (this._renderOnUpdateOnly is false)
+        if (!this._renderOnUpdateOnly || this._lastTick !== this._tick) {
+            this._callbacks.render();
         }
+        this._lastTick = this._tick;
+        this._frameId = requestAnimationFrame(this._loop.bind(this));
     }
 
     start() {
-        this.stop();
-
-        this._worker = createWorker(this._callbacks, this._rate, this._renderOnUpdateOnly);
-        this._worker.start();
+        if (!this._frameId) {
+            this._lastTime = 0;
+            this._accumulator = 0;
+            this._tick = 0;
+            this._lastTick = 0;
+            this._frameId = requestAnimationFrame(this._loop.bind(this));
+        }
     }
 
     stop() {
-        if (this._worker) {
-            this._worker.stop();
-            this._worker = null;
+        if (this._frameId) {
+            cancelAnimationFrame(this._frameId);
+            this._frameId = null;
         }
     }
 
-    reset() {
-        if (this._worker) {
-            this._worker.reset();
-        }
-    }
-
-    pause() {
-        if (this._worker) {
-            this._worker.pause();
-        }
-    }
-
-    unpause() {
-        if (this._worker) {
-            this._worker.unpause();
-        }
+    suspend() {
+        this._accumulator = 0;
     }
 
 }
+
+// USAGE :
+// import Timer from './Timer.js'
