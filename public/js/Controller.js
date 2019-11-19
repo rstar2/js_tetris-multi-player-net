@@ -1,3 +1,7 @@
+/**
+ * @typedef { import("./Tetris").default } Tetris
+ */
+
 import TetrisManager from './TetrisManager.js';
 import ConnectionManager from './ConnectionManager.js';
 

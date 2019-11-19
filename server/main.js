@@ -1,11 +1,11 @@
-const WebSocketServer = require('ws').Server;
+const { Server: WebSocketServer } = require('ws');
 
 const Client = require('./client');
 const Session = require('./session');
-const generateId = require('./guid').generateId;
-const log = require('./debug').log;
+const { generateId } = require('./guid');
+const { log }= require('./debug');
 
-const server = new WebSocketServer({ port: 9000 });
+const wsServer = new WebSocketServer({ port: 9000 });
 
 const MSG_TYPE = {
     SESSION_CREATE: 'session-create',
@@ -19,7 +19,7 @@ const MSG_TYPE = {
 
 const sessions = new Map();
 
-server.on('connection', conn => {
+wsServer.on('connection', conn => {
     let client = createClient(conn);
 
     conn.on('close', () => {

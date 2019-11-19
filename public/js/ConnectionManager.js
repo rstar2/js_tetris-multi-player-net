@@ -1,5 +1,8 @@
+/**
+ * @typedef { import("./Controller").default } Controller
+ */
+
 import * as debug from './debug.js';
-import Controller from './Controller.js';
 
 export const MSG_TYPE = {
     SESSION_CREATE: 'session-create',
