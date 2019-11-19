@@ -20,7 +20,7 @@ const MSG_TYPE = {
 const sessions = new Map();
 
 server.on('connection', conn => {
-    const client = createClient(conn);
+    let client = createClient(conn);
 
     conn.on('close', () => {
         log('Client disconnected', client.id);
@@ -29,23 +29,27 @@ server.on('connection', conn => {
         if (session) {
             session.leave(client);
 
-            if (client.isCreator) {
-                log('Session creator has disconnected', client.id);
-                // notify all remaining clients
-                broadcastSessionDestroy(session);
-
-                // destroy current session and clear clients (they will close their connections also)
-                session.clients.forEach(client => client.close());
-            }
-
             if (session.isEmpty) {
                 log('Session destroyed', session.id);
                 sessions.delete(session.id);
             }
 
-            // broadcast the current room's/session's state
-            broadcastSessionState(session);
+            if (client.isCreator) {
+                log('Session creator has disconnected', client.id);
+                // notify all remaining clients
+                broadcastSessionDestroy(session);
+                // destroy current session - close remaining clients clients connections also
+                // this will in turn  will
+                session.clients.forEach(client => client.close());
+            }
+
+            if (!client.isCreator) {
+                // broadcast the current room's/session's state
+                broadcastSessionState(session);
+            }
         }
+        // clear the reference to the client so that it can be garbage-collected
+        client = null;
     });
 
     conn.on('message', event => {
@@ -111,7 +115,7 @@ function getSession(id) {
  * @param {String} type 
  * @param {Object} [data] 
  */
-function broadcastMessage(client, type, data) {
+function broadcastMessageToOthers(client, type, data) {
     if (!client.isAttachedTo()) {
         throw new Error(`Client ${client} is not in a session in order to broadcast messages`);
     }
@@ -123,6 +127,7 @@ function broadcastMessage(client, type, data) {
 /**
  * 
  * @param {Session} session 
+ * @param {Client} clientJoined the newly joined client to whom to send the 'pieces' 
  */
 function broadcastSessionState(session, clientJoined) {
     const clients = session.clients;
@@ -158,6 +163,15 @@ function broadcastSessionDestroy(session) {
     session.clients.forEach(client => client.send(MSG_TYPE.SESSION_DESTROYED));
 }
 
+/**
+ * @param {Map<Number, Number} map
+ * @return {[Number, Number][]}
+ */
+function serializeMap(map) {
+    // note here I serialize the Map<Number, Number> to [Number, Number][] with "entries = [...map]",
+    // that later could be deserialize with: "map = new Map(entries)""
+    return [...map];
+}
 
 /**
  * 
@@ -167,16 +181,6 @@ function onSessionCreate(client) {
     const session = createSession();
     session.join(client, true);
     client.send(MSG_TYPE.SESSION_CREATED, { id: session.id, pieces: serializeMap(session.pieces) });
-}
-
-/**
- * @param {Map<Number, Number} map
- * @return {[Number, Number][]}
- */
-function serializeMap(map) {
-    // note here I serialize the Map<Number, Number> to [Number, Number][] with "entries = [...map]",
-    // that later could be deserialize with: "map = new Map(entries)""
-    return [...map];
 }
 
 /**
@@ -206,5 +210,5 @@ function onUpdateState(client, state) {
     log('Update state for client', client.id);
 
     // broadcast the current client's state to all other clients of the session
-    broadcastMessage(client, MSG_TYPE.UPDATE_STATE, { state, peer: client.id });
+    broadcastMessageToOthers(client, MSG_TYPE.UPDATE_STATE, { state, peer: client.id });
 }

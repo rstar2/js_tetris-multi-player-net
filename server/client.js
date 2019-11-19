@@ -1,3 +1,7 @@
+/**
+ * @typedef { import("./session") } Session
+ */
+
 const log = require('./debug').log;
 const logError = require('./debug').error;
 
@@ -14,10 +18,16 @@ class Client {
         this._isCreator  = false;
     }
 
+    /**
+     * @return {String}
+     */
     get id() {
         return this._id;
     }
 
+    /**
+     * @return {Session}
+     */
     get session() {
         if (!this._session) {
             throw new Error(`Cannot request session from a not-attached client ${this._id}`);
@@ -25,14 +35,24 @@ class Client {
         return this._session;
     }
 
+    /**
+     * @return {String}
+     */
     get sessionId() {
         return this._session && this._session.id;
     }
 
+    /**
+     * @return {Boolean}
+     */
     get isCreator() {
         return this._isCreator;
     }
 
+    /**
+     * @param {Session} session
+     * @return {Boolean}
+     */
     isAttachedTo(session) {
         if (session) {
             return this._session === session;
@@ -40,7 +60,13 @@ class Client {
         return !!this._session;
     }
 
+    /**
+     * @param {Session} session
+     */
     attachTo(session, isCreator = false) {
+        if (this._session) {
+            throw new Error(`Session is already attached to client ${this._id}`);
+        }
         this._session = session;
         this._isCreator = isCreator;
     }

@@ -1,3 +1,7 @@
+/**
+ * @typedef { import("./client") } Client
+ */
+
 const logWarn = require('./debug').warn;
 
 // get this from client
@@ -11,24 +15,36 @@ class Session {
         this._gamePieces = null;
     }
 
+    /**
+     * @return {String}
+     */
     get id() {
         return this._id;
     }
 
+    /**
+     * @return {Number}
+     */
     get size() {
         return this._clients.size;
     }
 
+    /**
+     * @return {Boolean}
+     */
     get isEmpty() {
         return this.size === 0;
     }
 
+    /**
+     * @return {Client[]}
+     */
     get clients() {
         return [...this._clients];
     }
 
     /**
-     * @returns {Map<Number, Number>}
+     * @return {Map<Number, Number>}
      */
     get pieces() {
         return this._gamePieces;
@@ -53,6 +69,9 @@ class Session {
         this._clients.add(client);
     }
 
+    /**
+     * @param {Client} client
+     */
     leave(client) {
         if (!client.isAttachedTo(this)) {
             throw new Error(`Client is not attached to this session ${this._id}.`);
@@ -61,7 +80,6 @@ class Session {
         client.detach();
 
         this._clients.delete(client);
-        return this._gamePieces;
     }
 
     startGame() {

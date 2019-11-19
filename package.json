@@ -5,7 +5,7 @@
   "main": "public/js/main.js",
   "scripts": {
     "client": "serve ./public",
-    "server": "node ./server/main.js",
+    "server": "npx nodemon ./server/main.js",
     "start": "concurrently  --kill-others --names \"CLIENT, SERVER\" -c \"bgBlue.bold, bgMagenta.bold\" \"npm run client\" \"npm run server\""
   },
   "repository": {
