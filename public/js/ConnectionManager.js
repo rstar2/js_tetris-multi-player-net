@@ -202,7 +202,7 @@ export default class ConnectionManager {
                             // this is the new winner
                             acc = [tetris];
                         } else if (score === winnersScore) {
-                            //this is also a winner
+                            // this is also a winner
                             acc.push(tetris);
                         }
                     } else {

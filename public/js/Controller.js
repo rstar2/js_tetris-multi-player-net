@@ -9,12 +9,16 @@ export default class Controller {
     /**
      * @param {HTMLElement} template 
      * @param {HTMLElement} container 
+     * @param {HTMLElement} startButton 
      * @param {String} wsAddress
      */
-    constructor(template, container, wsAddress) {
+    constructor(template, container, startButton, wsAddress) {
         this._tetrisManager = new TetrisManager(template, container);
         // create the current local tetris
         this._tetrisLocal = this._tetrisManager.create(this);
+
+
+        startButton.addEventListener('click', this.startStopListener.bind(this));
 
         this._connManager = new ConnectionManager(this);
         this._connManager.connect(wsAddress);
@@ -67,4 +71,15 @@ export default class Controller {
         // send local tetris last updated state
         this._connManager.sendUpdate(state);
     }
+
+    startStopListener(event) {
+
+    }
 }
+
+const STATE = {
+    INIT: Symbol(0),
+    STOPPED: Symbol(1),
+    STARTED: Symbol(2),
+    PAUSED: Symbol(3)
+};

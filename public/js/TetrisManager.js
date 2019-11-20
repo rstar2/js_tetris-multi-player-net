@@ -61,9 +61,7 @@ export default class TetrisManager {
      */
     reset() {
         const players = document.querySelectorAll('.player');
-        players.forEach(player => {
-            this._winner(player, false);
-        });
+        players.forEach(player => this._winner(player, false));
     }
 
     /**

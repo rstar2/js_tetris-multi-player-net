@@ -1,11 +1,33 @@
+/**
+ * @typedef { import("./Controller").default } Controller
+ */
+
+
 import { PIECES } from './pieces.js';
 import * as matrix from './matrix.js';
 import Player from './Player.js';
 import Timer from './Timer.js';
 
+const STATE = {
+    INIT: Symbol(),
+    STARTED: Symbol(),
+    PAUSED: Symbol(),
+    ENDED: Symbol(),
+}
+
+
 let count = 0;
 export default class Tetris {
 
+    /**
+     * 
+     * @param {Controller} controller 
+     * @param {HTMLCanvasElement} canvas 
+     * @param {Number} arenaW 
+     * @param {Number} arenaH 
+     * @param {Number} scale 
+     * @param {Number} score 
+     */
     constructor(controller, canvas, arenaW, arenaH, scale, score) {
         this._controller = controller;
         this._canvas = canvas;
@@ -19,6 +41,7 @@ export default class Tetris {
 
         this._id = ++count;
 
+        // if this is "local" tetris
         if (controller) {
             document.addEventListener('keydown', this._handleKeydown.bind(this, [37, 39, 219, 221, 40]));
 
@@ -29,7 +52,7 @@ export default class Tetris {
         this._player = new Player(arenaW / 2);
 
         // dynamic members
-        this._ended = false;
+        this._state = STATE.INIT;
         this._skipNextNotForced = false;
         this._pieceSeq = 0;
         this._pieceQueue = new Map;
@@ -44,14 +67,22 @@ export default class Tetris {
     }
 
     getEnded() {
-        return this._ended;
+        return this._state === STATE.ENDED;
     }
 
     start() {
+        this._state = STATE.STARTED;
         this._timer.start();
     }
 
+    pause() {
+        this._state = STATE.PAUSED;
+        // TODO: check whether suspend or stop to call, suspend I think is currently not right
+        this._timer.stop();
+    }
+
     stop() {
+        this._state = STATE.ENDED;
         this._timer.stop();
     }
 
@@ -60,8 +91,10 @@ export default class Tetris {
      * @param {Map} pieces
      */
     reset(pieces) {
+        this.pause();
+
         // reset initial members
-        this._ended = false;
+        this._state = STATE.INIT;
         this._skipNextNotForced = false;
         this._pieceSeq = 0;
         this._pieceQueue = pieces;
@@ -85,21 +118,23 @@ export default class Tetris {
     }
 
     update({ arena, piece, pos, score, ended }) {
+        if (ended) {
+            this._state = STATE.ENDED;
+        }
+
         let updated = this._player.update({ piece, pos, score });
+        
         if (arena) {
             updated = true;
             this._arena = arena;
         }
+
         if (updated) {
             this._render();
         }
 
         if (score) {
             this._renderScore();
-        }
-
-        if (ended) {
-            this._ended = ended;
         }
     }
 
@@ -153,7 +188,7 @@ export default class Tetris {
                 // notify the controller that this player-tetris 'ended' (though it may still not have lost)
                 this._timer.stop();
                 this._render();
-                this._ended = true;
+                this._state = STATE.ENDED;
                 this._controller.sendUpdate({ ended: true });
             }
 
@@ -233,7 +268,7 @@ export default class Tetris {
      * @param {*} event 
      */
     _handleKeydown(keys, event) {
-        if (this._ended) {
+        if (this._state !== STATE.STARTED) {
             return;
         }
 
@@ -261,4 +296,5 @@ export default class Tetris {
         }
     }
 
+    
 }
