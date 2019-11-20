@@ -2,23 +2,22 @@
  * @typedef { import("./Controller").default } Controller
  */
 
-import * as debug from './debug.js';
+import * as debug from "./debug.js";
 
 export const MSG_TYPE = {
-    SESSION_CREATE: 'session-create',
-    SESSION_CREATED: 'session-created',
-    SESSION_JOIN: 'session-join',
-    SESSION_STATE: 'session-state',
-    SESSION_DESTROYED: 'session-destroyed',
+    SESSION_CREATE: "session-create",
+    SESSION_CREATED: "session-created",
+    SESSION_JOIN: "session-join",
+    SESSION_STATE: "session-state",
+    SESSION_DESTROYED: "session-destroyed",
 
-    UPDATE_STATE: 'update-state',
+    UPDATE_STATE: "update-state"
 };
 
 export default class ConnectionManager {
-
     /**
-     * @param {Controller} controller 
-     */
+   * @param {Controller} controller
+   */
     constructor(controller) {
         this._controller = controller;
         this._conn = null;
@@ -27,19 +26,19 @@ export default class ConnectionManager {
     }
 
     /**
-     * 
-     * @param {String} address 
-     */
+   *
+   * @param {String} address
+   */
     connect(address) {
         this._conn = new WebSocket(address);
 
-        this._conn.addEventListener('open', () => {
-            debug.log('Connection established');
+        this._conn.addEventListener("open", () => {
+            debug.log("Connection established");
 
             this.initSession();
         });
 
-        this._conn.addEventListener('message', event => {
+        this._conn.addEventListener("message", event => {
             const { type, data } = JSON.parse(event.data);
 
             this._onReceived(type, data);
@@ -47,7 +46,7 @@ export default class ConnectionManager {
     }
 
     initSession() {
-        const sessionId = window.location.hash.split('#')[1];
+        const sessionId = window.location.hash.split("#")[1];
         if (sessionId) {
             // join a room/session
             this._send(MSG_TYPE.SESSION_JOIN, { id: sessionId });
@@ -58,9 +57,9 @@ export default class ConnectionManager {
     }
 
     /**
-     * 
-     * @param {Object} state 
-     */
+   *
+   * @param {Object} state
+   */
     sendUpdate(state) {
         this._send(MSG_TYPE.UPDATE_STATE, state);
 
@@ -69,19 +68,26 @@ export default class ConnectionManager {
     }
 
     /**
-     * 
-     * @param {String} type 
-     * @param {Object} data 
-     */
+   *
+   * @param {String} type
+   * @param {Object} data
+   */
     _onReceived(type, data) {
-        debug.log('Message received', type, ' ', data);
+        debug.log("Message received", type, " ", data);
 
         switch (type) {
             case MSG_TYPE.SESSION_CREATED:
-                this._onReceivedSessionCreated(data.id, this._deserializeMap(data.pieces));
+                this._onReceivedSessionCreated(
+                    data.id,
+                    this._deserializeMap(data.pieces)
+                );
                 break;
             case MSG_TYPE.SESSION_STATE:
-                this._onReceivedSessionState(data.current, data.peers, this._deserializeMap(data.pieces));
+                this._onReceivedSessionState(
+                    data.current,
+                    data.peers,
+                    this._deserializeMap(data.pieces)
+                );
                 break;
             case MSG_TYPE.SESSION_DESTROYED:
                 this._onReceivedSessionDestroyed();
@@ -93,18 +99,18 @@ export default class ConnectionManager {
     }
 
     /**
-     * @param {[Number, Number][]} [pieces]
-     * @returns {Map<Number, Number>}
-     */
+   * @param {[Number, Number][]} [pieces]
+   * @returns {Map<Number, Number>}
+   */
     _deserializeMap(pieces) {
         return pieces && new Map(pieces);
     }
 
     /**
-     * 
-     * @param {String} sessionId
-     * @param {Map<Number, Number>} pieces
-     */
+   *
+   * @param {String} sessionId
+   * @param {Map<Number, Number>} pieces
+   */
     _onReceivedSessionCreated(sessionId, pieces) {
         window.location.hash = sessionId;
 
@@ -112,13 +118,13 @@ export default class ConnectionManager {
     }
 
     /**
-     * 
-     * @param {String} currentPeer 
-     * @param {String[]} allPeers 
-     * @param {Map<Number, Number>} [pieces]
-     */
+   *
+   * @param {String} currentPeer
+   * @param {String[]} allPeers
+   * @param {Map<Number, Number>} [pieces]
+   */
     _onReceivedSessionState(currentPeer, allPeers, pieces) {
-        // it will be sent only once on the first MSG_TYPE.SESSION_JOIN request
+    // it will be sent only once on the first MSG_TYPE.SESSION_JOIN request
         if (pieces) {
             this._controller.init(pieces);
         }
@@ -148,10 +154,10 @@ export default class ConnectionManager {
     }
 
     /**
-     * 
-     * @param {String} peer 
-     * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state 
-     */
+   *
+   * @param {String} peer
+   * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state
+   */
     _onReceivedUpdateState(peer, state) {
         if (peer) {
             const tetris = this._peers.get(peer);
@@ -163,7 +169,7 @@ export default class ConnectionManager {
                 return;
             }
         } else {
-            debug.warn('Illegal update-state message for unspecified peer');
+            debug.warn("Illegal update-state message for unspecified peer");
             return;
         }
 
@@ -172,12 +178,12 @@ export default class ConnectionManager {
     }
 
     /**
-     * 
-     * @param {String} type 
-     * @param {Object} data 
-     */
+   *
+   * @param {String} type
+   * @param {Object} data
+   */
     _send(type, data) {
-        debug.log('Message send', type, ' ', data);
+        debug.log("Message send", type, " ", data);
         const msg = { type };
         if (data) {
             msg.data = data;
@@ -186,11 +192,11 @@ export default class ConnectionManager {
     }
 
     /**
-     * 
-     * @param {Object} data 
-     */
+   *
+   * @param {Object} data
+   */
     _checkEnded(state) {
-        // check if all tetrises are finally ended
+    // check if all tetrises are finally ended
         if (state.ended) {
             const all = [...this._peers.values(), this._controller.tetris];
             if (all.every(tetris => tetris.getEnded())) {
@@ -206,7 +212,7 @@ export default class ConnectionManager {
                             acc.push(tetris);
                         }
                     } else {
-                        // this is the first - assume it's a winner 
+                        // this is the first - assume it's a winner
                         acc.push(tetris);
                     }
 
@@ -216,5 +222,4 @@ export default class ConnectionManager {
             }
         }
     }
-
 }

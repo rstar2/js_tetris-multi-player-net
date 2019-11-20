@@ -11,9 +11,8 @@ import Timer from './Timer.js';
 const STATE = {
     INIT: Symbol(),
     STARTED: Symbol(),
-    PAUSED: Symbol(),
     ENDED: Symbol(),
-}
+};
 
 
 let count = 0;
@@ -75,12 +74,6 @@ export default class Tetris {
         this._timer.start();
     }
 
-    pause() {
-        this._state = STATE.PAUSED;
-        // TODO: check whether suspend or stop to call, suspend I think is currently not right
-        this._timer.stop();
-    }
-
     stop() {
         this._state = STATE.ENDED;
         this._timer.stop();
@@ -91,7 +84,7 @@ export default class Tetris {
      * @param {Map} pieces
      */
     reset(pieces) {
-        this.pause();
+        this.stop();
 
         // reset initial members
         this._state = STATE.INIT;

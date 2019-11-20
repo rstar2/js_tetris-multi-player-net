@@ -9,19 +9,23 @@ export default class Controller {
     /**
      * @param {HTMLElement} template 
      * @param {HTMLElement} container 
-     * @param {HTMLElement} startButton 
+     * @param {HTMLElement} stateButton 
      * @param {String} wsAddress
      */
-    constructor(template, container, startButton, wsAddress) {
+    constructor(template, container, stateButton, wsAddress) {
         this._tetrisManager = new TetrisManager(template, container);
         // create the current local tetris
         this._tetrisLocal = this._tetrisManager.create(this);
 
 
-        startButton.addEventListener('click', this.startStopListener.bind(this));
+        this._stateButton = stateButton;
+        this._stateButton.addEventListener('click', this._changeState.bind(this));
 
         this._connManager = new ConnectionManager(this);
         this._connManager.connect(wsAddress);
+
+        this._state = null;
+        this._setState(STATE.INIT);
     }
 
     /**
@@ -60,7 +64,7 @@ export default class Controller {
      */
     init(pieces) {
         this._tetrisLocal.reset(pieces);
-        this._tetrisLocal.start();
+        // this._tetrisLocal.start();
     }
 
     destroy() {
@@ -72,14 +76,67 @@ export default class Controller {
         this._connManager.sendUpdate(state);
     }
 
-    startStopListener(event) {
+    _changeState() {
+        let newState;
+        switch (this._state) {
+            case STATE.INIT:
+            case STATE.STOPPED:
+            case STATE.PAUSED:
+                newState = STATE.STARTED;
+                break;
+            case STATE.STARTED:
+                newState = STATE.PAUSED;
+                break;
+        }
+        this._setState(newState);
+    }
 
+    _setState(newState) {
+        if (this._state === newState) {
+            return;
+        }
+
+        let text;
+        switch (newState) {
+            case STATE.INIT:
+                text = 'Start';
+                this._tetrisLocal.reset();
+                break;
+            case STATE.STARTED:
+                text = 'Pause';
+                // this depends on the current state
+                switch (this._state) {
+                    case STATE.INIT:
+                        this._tetrisLocal.start();
+                        break;
+                    case STATE.STOPPED:
+                        reset();
+                        timer.start();
+                        break;
+                    case STATE.PAUSED:
+                        timer.unpause();
+                        break;
+
+                }
+                break;
+            case STATE.PAUSED:
+                text = 'Unpause';
+                this._tetrisLocal.stop();
+                break;
+            case STATE.STOPPED:
+                text = 'Start';
+                this._tetrisLocal.stop();
+                break;
+        }
+
+        this._state = newState;
+        this._stateButton.innerText = text;
     }
 }
 
 const STATE = {
-    INIT: Symbol(0),
-    STOPPED: Symbol(1),
-    STARTED: Symbol(2),
-    PAUSED: Symbol(3)
+    INIT: Symbol(),
+    STARTED: Symbol(),
+    PAUSED: Symbol(),
+    STOPPED: Symbol(),
 };
