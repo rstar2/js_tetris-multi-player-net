@@ -16,7 +16,7 @@ export default class Controller {
         this._tetrisManager = new TetrisManager(template, container);
         // create the current local tetris
         this._tetrisLocal = this._tetrisManager.create(this);
-
+        this._isCreator = false;
 
         this._stateButton = stateButton;
         this._stateButton.addEventListener('click', this._changeState.bind(this));
@@ -61,13 +61,15 @@ export default class Controller {
     /**
      * 
      * @param {Map} pieces
+     * @param {Boolean} isCreator
      */
-    init(pieces) {
+    init(pieces, isCreator) {
+        this._isCreator = isCreator;
         this._tetrisLocal.reset(pieces);
-        // this._tetrisLocal.start();
     }
 
     destroy() {
+        this._connManager.closeSession();
         this._tetrisLocal.stop();
     }
 

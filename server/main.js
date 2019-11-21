@@ -144,6 +144,7 @@ function broadcastSessionState(session, clientJoined) {
 
     clients.forEach(client => {
         const data = {
+            id: session.id,
             current: client.id,
             creator: clientCreator.id,
             peers
@@ -180,7 +181,12 @@ function serializeMap(map) {
 function onSessionCreate(client) {
     const session = createSession();
     session.join(client, true);
-    client.send(MSG_TYPE.SESSION_CREATED, { id: session.id, pieces: serializeMap(session.pieces) });
+    client.send(MSG_TYPE.SESSION_CREATED, { 
+        id: session.id,
+        current: client.id,
+        creator: client.id,
+        pieces: serializeMap(session.pieces)
+    });
 }
 
 /**
@@ -188,13 +194,13 @@ function onSessionCreate(client) {
  * @param {Client} client 
  */
 function onSessionJoin(client, sessionId) {
-    let createdNow = false;
     let session = getSession(sessionId);
     if (!session) {
-        session = createSession(sessionId);
-        createdNow = true;
+        onSessionCreate(client);
+        return;
     }
-    session.join(client, createdNow);
+
+    session.join(client, false);
     log('Session joined', session.id, session.size);
 
     // broadcast the current room's/session's state

@@ -15,9 +15,11 @@ export const MSG_TYPE = {
 };
 
 export default class ConnectionManager {
+
     /**
-   * @param {Controller} controller
-   */
+     * 
+     * @param {Controller} controller 
+     */
     constructor(controller) {
         this._controller = controller;
         this._conn = null;
@@ -26,9 +28,9 @@ export default class ConnectionManager {
     }
 
     /**
-   *
-   * @param {String} address
-   */
+     *
+     * @param {String} address
+     */
     connect(address) {
         this._conn = new WebSocket(address);
 
@@ -56,10 +58,19 @@ export default class ConnectionManager {
         }
     }
 
+    closeSession() {
+        this._peers = [];
+        
+        // close the WebSocket connection
+        if (this._conn) {
+            this._conn.close();
+        }
+    }
+
     /**
-   *
-   * @param {Object} state
-   */
+     * 
+     * @param {Object} state 
+     */
     sendUpdate(state) {
         this._send(MSG_TYPE.UPDATE_STATE, state);
 
@@ -68,26 +79,19 @@ export default class ConnectionManager {
     }
 
     /**
-   *
-   * @param {String} type
-   * @param {Object} data
-   */
+     * 
+     * @param {String} type 
+     * @param {Object} data 
+     */
     _onReceived(type, data) {
         debug.log("Message received", type, " ", data);
 
         switch (type) {
             case MSG_TYPE.SESSION_CREATED:
-                this._onReceivedSessionCreated(
-                    data.id,
-                    this._deserializeMap(data.pieces)
-                );
+                this._onReceivedSessionCreated(data);
                 break;
             case MSG_TYPE.SESSION_STATE:
-                this._onReceivedSessionState(
-                    data.current,
-                    data.peers,
-                    this._deserializeMap(data.pieces)
-                );
+                this._onReceivedSessionState(data);
                 break;
             case MSG_TYPE.SESSION_DESTROYED:
                 this._onReceivedSessionDestroyed();
@@ -99,40 +103,38 @@ export default class ConnectionManager {
     }
 
     /**
-   * @param {[Number, Number][]} [pieces]
-   * @returns {Map<Number, Number>}
-   */
-    _deserializeMap(pieces) {
-        return pieces && new Map(pieces);
-    }
+     * @param {String} id
+     * @param {String} client
+     * @param {Map<Number, Number>} pieces
+     */
+    _onReceivedSessionCreated({id: sessionId, pieces}) {
+        pieces = deserializeMap(pieces);
 
-    /**
-   *
-   * @param {String} sessionId
-   * @param {Map<Number, Number>} pieces
-   */
-    _onReceivedSessionCreated(sessionId, pieces) {
+        // update the window location's hash
         window.location.hash = sessionId;
 
-        this._controller.init(pieces);
+        // we are the creator
+        this._controller.init(pieces, true);
     }
 
     /**
-   *
-   * @param {String} currentPeer
-   * @param {String[]} allPeers
-   * @param {Map<Number, Number>} [pieces]
-   */
-    _onReceivedSessionState(currentPeer, allPeers, pieces) {
-    // it will be sent only once on the first MSG_TYPE.SESSION_JOIN request
+     * @param {String} id
+     * @param {String} current current client
+     * @param {String[]} peers all clients, including current
+     * @param {Map<Number, Number>} [pieces]
+     */
+    _onReceivedSessionState({ current: currentPeer, peers: allPeers, pieces }) {
+        // it will be sent only once on the first MSG_TYPE.SESSION_JOIN request
         if (pieces) {
-            this._controller.init(pieces);
+            pieces = deserializeMap(pieces);
+            // we are NOT the creator
+            this._controller.init(pieces, false);
         }
 
-        const others = allPeers.filter(id => currentPeer !== id);
-
         // add all newly connected peers and draw a Tetris for them
-        others.forEach(peer => {
+        allPeers.forEach(peer => {
+            if (peer === currentPeer) return;
+
             if (!this._peers.has(peer)) {
                 this._peers.set(peer, this._controller.createTetris());
             }
@@ -142,7 +144,7 @@ export default class ConnectionManager {
         this._peers.forEach((tetris, peer) => {
             // this current tetris/peer is not in the latest session/room state
             // so remove it
-            if (-1 === others.indexOf(peer)) {
+            if (-1 === allPeers.indexOf(peer)) {
                 this._peers.delete(peer);
                 this._controller.removeTetris(tetris);
             }
@@ -222,4 +224,12 @@ export default class ConnectionManager {
             }
         }
     }
+}
+
+/**
+ * @param {[Number, Number][]} [pieces]
+ * @returns {Map<Number, Number>}
+ */
+function deserializeMap(pieces) {
+    return pieces && new Map(pieces);
 }
