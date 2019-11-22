@@ -135,11 +135,12 @@ export default class Tetris {
         this._context.fillStyle = 'black';
         this._context.fillRect(0, 0, this._canvas.width, this._canvas.height);
 
-        // render the arena (current fallen pieces)
+        // render the arena (all fallen pieces)
         matrix.render(this._arena, this._context);
 
         // render the player (current falling piece)
-        matrix.render(this._player.piece, this._context, this._player.color, this._player.pos);
+        if (this._player.piece)
+            matrix.render(this._player.piece, this._context, this._player.color, this._player.pos);
     }
 
     _drop(isForced) {
@@ -289,5 +290,5 @@ export default class Tetris {
         }
     }
 
-    
+
 }

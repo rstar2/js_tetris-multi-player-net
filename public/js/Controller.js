@@ -25,6 +25,10 @@ export default class Controller {
     constructor(template, container, stateButton, wsAddress) {
         this._tetrisManager = new TetrisManager(template, container);
         // create the current local tetris
+
+        /**
+         * @type {Tetris}
+         */
         this._tetrisLocal = this._tetrisManager.create(this);
         this._isCreator = false;
 
@@ -55,6 +59,11 @@ export default class Controller {
 
         this._isCreator = isCreator;
         this._tetrisLocal.reset(pieces);
+
+        // disable the button if we are not the "creator"
+        if (!this._isCreator) {
+            this._stateButton.setAttribute('disabled', '');
+        }
     }
 
     destroy() {
@@ -86,6 +95,14 @@ export default class Controller {
                 this._tetrisManager.remove(tetris);
             }
         });
+
+        if (this._players.size)
+            this._setGameState(STATE.CONNECTED);
+        else {
+            // TODO: if started then reset the game - looks like the creator is left alone
+            this._setGameState(STATE.INIT);
+        }
+            
     }
 
     /**
@@ -102,7 +119,7 @@ export default class Controller {
         // send the update state to the specific tetris
         tetris.update(state);
         // check if local tetris has ended then if all tetrises are ended and show winner(s)
-        this._checkEnded(state);
+        this._checkGameEnded(state);
     }
 
     /**
@@ -119,14 +136,19 @@ export default class Controller {
     _changeGameState() {
         let newState;
         switch (this._state) {
-            case STATE.INIT:
-            case STATE.STOPPED:
+            case STATE.CONNECTED:
             case STATE.PAUSED:
                 newState = STATE.STARTED;
                 break;
             case STATE.STARTED:
                 newState = STATE.PAUSED;
                 break;
+            case STATE.STOPPED:
+                newState = STATE.INIT;
+                break;
+            default:
+                // do nothing on other cases
+                return;
         }
         this._setGameState(newState);
     }
@@ -140,32 +162,24 @@ export default class Controller {
         switch (newState) {
             case STATE.INIT:
                 text = 'Waiting';
-                this._tetrisLocal.reset();
+
+                // send request for new game
+                // this._connManager.reconnect();
                 break;
+            case STATE.CONNECTED:
+                text = 'Start';
+                break;
+                        
             case STATE.STARTED:
                 text = 'Pause';
-                // this depends on the current state
-                switch (this._state) {
-                    case STATE.INIT:
-                        this._tetrisLocal.start();
-                        break;
-                    case STATE.STOPPED:
-                        reset();
-                        timer.start();
-                        break;
-                    case STATE.PAUSED:
-                        timer.unpause();
-                        break;
-
-                }
+                this._tetrisLocal.start();
                 break;
             case STATE.PAUSED:
                 text = 'Unpause';
                 this._tetrisLocal.stop();
                 break;
             case STATE.STOPPED:
-                text = 'Start';
-                this._tetrisLocal.stop();
+                text = 'Connect';
                 break;
         }
 

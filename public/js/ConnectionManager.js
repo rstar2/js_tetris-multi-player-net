@@ -123,7 +123,7 @@ export default class ConnectionManager {
      * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state
      */
     _onReceivedUpdateState(peer, state) {
-        this._controller.updateState(peer, state);
+        this._controller.updatePlayer(peer, state);
     }
 
     /**

@@ -131,10 +131,6 @@ class Session {
         this._gamePieces = null;
     }
 
-    // getGamePiece(client, pieceSeq) {
-
-    // }
-
 }
 
 module.exports = Session;

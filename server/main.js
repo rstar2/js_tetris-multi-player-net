@@ -22,6 +22,10 @@ const sessions = new Map();
 wsServer.on('connection', conn => {
     let client = createClient(conn);
 
+    conn.on('error', () => {
+        log('Client failed', client.id);
+    });
+
     conn.on('close', () => {
         log('Client disconnected', client.id);
 
@@ -41,9 +45,7 @@ wsServer.on('connection', conn => {
                 // destroy current session - close remaining clients clients connections also
                 // this will in turn  will
                 session.clients.forEach(client => client.close());
-            }
-
-            if (!client.isCreator) {
+            } else {
                 // broadcast the current room's/session's state
                 broadcastSessionState(session);
             }
