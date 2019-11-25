@@ -58,9 +58,18 @@ export default class ConnectionManager {
     }
 
     /**
+     * Send update for the game - only the creator can do this
+     * @param {Number} state 
+     */
+    sendGameUpdate(state) {
+        this._send(MSG_TYPE.SESSION_STATE, {state});
+    }
+
+    /**
+     * Send update for the current player/peer
      * @param {Object} state 
      */
-    sendUpdate(state) {
+    sendPeerUpdate(state) {
         this._send(MSG_TYPE.UPDATE_STATE, state);
     }
 
@@ -99,19 +108,25 @@ export default class ConnectionManager {
     }
 
     /**
-     * @param {String} id
-     * @param {String} current current client
-     * @param {String[]} peers all clients, including current
+     * @param {String} [current] current client
+     * @param {String[]} [peers] all clients, including current
      * @param {Map<Number, Number>} [pieces]
+     * @param {Number} [state] current session/game state
      */
-    _onReceivedSessionState({ current: currentPeer, peers: allPeers, pieces }) {
+    _onReceivedSessionState({ current: currentPeer, peers: allPeers, pieces, state }) {
         // it will be sent only once on the first MSG_TYPE.SESSION_JOIN request
         if (pieces) {
             // we are NOT the creator
             this._controller.init(deserializeMap(pieces), false);
         }
 
-        this._controller.updatePlayers(allPeers, currentPeer);
+        // update peers/players
+        if (allPeers)
+            this._controller.updateGamePlayers(allPeers, currentPeer);
+
+        // update current game's state
+        if (state !== undefined)
+            this._controller.updateGameState(state);
     }
 
     _onReceivedSessionDestroyed() {

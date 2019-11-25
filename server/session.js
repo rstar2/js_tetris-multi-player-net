@@ -4,6 +4,14 @@
 
 const logWarn = require('./debug').warn;
 
+const STATE = {
+    INIT: 0,
+    CONNECTED: 1,
+    STARTED: 2,
+    PAUSED: 3,
+    STOPPED: 4,
+};
+
 // get this from client
 const PIECES_POOL_SIZE = 7;
 

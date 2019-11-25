@@ -25,7 +25,7 @@ export default class Tetris {
      * @param {Number} arenaW 
      * @param {Number} arenaH 
      * @param {Number} scale 
-     * @param {Number} score 
+     * @param {HTMLElement} score 
      */
     constructor(controller, canvas, arenaW, arenaH, scale, score) {
         this._controller = controller;
@@ -57,30 +57,45 @@ export default class Tetris {
         this._pieceQueue = new Map;
     }
 
+    /**
+     * @return {String}
+     */
     getId() {
         return this._id;
     }
 
+    /**
+     * @return {Number}
+     */
     getScore() {
         return this._player.score;
     }
 
-    getEnded() {
+    /**
+     * @return {Boolean}
+     */
+    isEnded() {
         return this._state === STATE.ENDED;
     }
 
+    /**
+     * Called only for local/current player/tetris
+     */
     start() {
         this._state = STATE.STARTED;
         this._timer.start();
     }
 
+    /**
+     * Called only for local/current player/tetris
+     */
     stop() {
         this._state = STATE.ENDED;
         this._timer.stop();
     }
 
     /**
-     * 
+     * Called only for local/current player/tetris
      * @param {Map} pieces
      */
     reset(pieces) {
@@ -98,7 +113,7 @@ export default class Tetris {
         // reset player's score
         this._player.resetScore();
 
-        this._controller.sendUpdate({
+        this._controller.sendPlayerUpdate({
             arena: this._arena,
             score: this.getScore()
         });
@@ -110,6 +125,10 @@ export default class Tetris {
         this._renderScore();
     }
 
+    /**
+     * Called only for remote/other players/tetrises
+     * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state 
+     */
     update({ arena, piece, pos, score, ended }) {
         if (ended) {
             this._state = STATE.ENDED;
@@ -129,6 +148,17 @@ export default class Tetris {
         if (score) {
             this._renderScore();
         }
+    }
+
+    /**
+     * Called only for remote/other players/tetrises
+     * @return {{piece: Number[][], pos: Number}}
+     */
+    getFirstPiece() {
+        return {
+            piece: this._player.piece,
+            pos: this._player.pos
+        };
     }
 
     _render() {
@@ -169,27 +199,28 @@ export default class Tetris {
                 this._player.addScore(score);
                 this._renderScore();
 
-                this._controller.sendUpdate({ score: this.getScore() });
+                this._controller.sendPlayerUpdate({ score: this.getScore() });
             }
 
-            this._controller.sendUpdate({ arena: this._arena });
+            this._controller.sendPlayerUpdate({ arena: this._arena });
 
-            // generate a new piece for the player - it will be also started form the top
+            // generate a new piece for the player - it will be also started from the top
             this._generatePiece();
 
             // check for Game Over - just check if right after a new piece there's a collision
             if (matrix.isCollide(this._arena, this._player)) {
-                // notify the controller that this player-tetris 'ended' (though it may still not have lost)
-                this._timer.stop();
+                // we have to stop the timer outside of the timer's callback - otherwise it will never stop
+                // as inside it's gonna restart itself (if we used internal timer's state inside then this will not be needed)
+                Promise.resolve().then(this.stop.bind(this));
                 this._render();
-                this._state = STATE.ENDED;
-                this._controller.sendUpdate({ ended: true });
+                // notify the controller that this player-tetris 'ended' (though it may still not have lost)
+                this._controller.sendPlayerUpdate({ ended: true });
             }
 
             return;
         }
 
-        this._controller.sendUpdate({ pos: this._player.pos });
+        this._controller.sendPlayerUpdate({ pos: this._player.pos });
     }
 
     _generatePiece() {
@@ -199,7 +230,7 @@ export default class Tetris {
         this._player.resetWith(nextPiece, 'red');
 
         this._pieceSeq++;
-        this._controller.sendUpdate({
+        this._controller.sendPlayerUpdate({
             piece: this._player.piece,
             pos: this._player.pos
         });
@@ -213,7 +244,7 @@ export default class Tetris {
             return;
         }
 
-        this._controller.sendUpdate({ pos: this._player.pos });
+        this._controller.sendPlayerUpdate({ pos: this._player.pos });
     }
 
     _rotate(isLeft) {
@@ -244,7 +275,7 @@ export default class Tetris {
             }
         }
 
-        this._controller.sendUpdate({
+        this._controller.sendPlayerUpdate({
             piece: this._player.piece,
             pos: this._player.pos
         });

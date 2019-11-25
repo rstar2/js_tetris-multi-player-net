@@ -66,6 +66,9 @@ wsServer.on('connection', conn => {
             case MSG_TYPE.SESSION_JOIN:
                 onSessionJoin(client, data.id);
                 break;
+            case MSG_TYPE.SESSION_STATE:
+                onUpdateSessionState(client, data.state);
+                break;
             case MSG_TYPE.UPDATE_STATE:
                 onUpdateState(client, data);
                 break;
@@ -146,7 +149,7 @@ function broadcastSessionState(session, clientJoined) {
 
     clients.forEach(client => {
         const data = {
-            id: session.id,
+            // id: session.id,
             current: client.id,
             creator: clientCreator.id,
             peers
@@ -219,4 +222,28 @@ function onUpdateState(client, state) {
 
     // broadcast the current client's state to all other clients of the session
     broadcastMessageToOthers(client, MSG_TYPE.UPDATE_STATE, { state, peer: client.id });
+}
+
+
+/**
+ * 
+ * @param {Client} client 
+ * @param {Number} state 
+ */
+function onUpdateSessionState(client, state) {
+    if (!client.isAttachedTo()) {
+        throw new Error(`Client ${client} is not in a session in order to to update its state`);
+    }
+    if (!client.isCreator) {
+        throw new Error(`Client ${client} is creator of the session in order to update its state`);
+    }
+
+    log('Update session state', state);
+
+    const data = {
+        state
+    };
+    const session = client.session;
+    // TODO: set the state into the session ?
+    session.clients.forEach(client => client.send(MSG_TYPE.SESSION_STATE, data));
 }

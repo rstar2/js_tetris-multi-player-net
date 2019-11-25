@@ -8,11 +8,11 @@ import ConnectionManager from './ConnectionManager.js';
 import * as debug from "./debug.js";
 
 const STATE = {
-    INIT: Symbol(),
-    CONNECTED: Symbol(),
-    STARTED: Symbol(),
-    PAUSED: Symbol(),
-    STOPPED: Symbol(),
+    INIT: 0,
+    CONNECTED: 1,
+    STARTED: 2,
+    PAUSED: 3,
+    STOPPED: 4,
 };
 
 export default class Controller {
@@ -39,6 +39,9 @@ export default class Controller {
         // connect to a game - create a new one or join an existing
         this._connManager.connect(wsAddress, window.location.hash.split("#")[1]);
 
+        /**
+         * @type {Map<String, Tetris>}
+         */
         this._players = new Map();
 
         this._state = null;
@@ -63,6 +66,7 @@ export default class Controller {
         // disable the button if we are not the "creator"
         if (!this._isCreator) {
             this._stateButton.setAttribute('disabled', '');
+            this._stateButton.classList.add('disabled');
         }
     }
 
@@ -73,17 +77,29 @@ export default class Controller {
     }
 
     /**
+     * @param {String} state 
+     */
+    updateGameState(state) {
+        // TODO: validate the new state according to the current
+        this._setGameState(state);
+    }
+
+    /**
      * @param {String[]} allPlayers all clients/players, including current
      * @param {String} currentPlayer current client
      */
-    updatePlayers(allPlayers, currentPlayer) {
+    updateGamePlayers(allPlayers, currentPlayer) {
         // add all newly connected players and draw a Tetris for them
         allPlayers.forEach(player => {
             if (player === currentPlayer) return;
 
             // add new
             if (!this._players.has(player)) {
-                this._players.set(player, this._tetrisManager.create());
+                const tetris = this._tetrisManager.create();
+                this._players.set(player, tetris);
+
+                // send it the pieces and initial piece state (don't wait for the server to do it)
+                tetris.update(this._tetrisLocal.getFirstPiece());
             }
         });
 
@@ -99,7 +115,8 @@ export default class Controller {
         if (this._players.size)
             this._setGameState(STATE.CONNECTED);
         else {
-            // TODO: if started then reset the game - looks like the creator is left alone
+            // looks like the creator is left alone
+            // TODO: if started then reset the game
             this._setGameState(STATE.INIT);
         }
             
@@ -116,24 +133,32 @@ export default class Controller {
             return;
         }
 
-        // send the update state to the specific tetris
+        // send the update state to the specific player's tetris
         tetris.update(state);
+
         // check if local tetris has ended then if all tetrises are ended and show winner(s)
-        this._checkGameEnded(state);
+        this._checkGameEnded(state.ended);
     }
 
     /**
      * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state
      */
-    sendUpdate(state) {
-        // check if local tetris has ended then if all tetrises are ended and show winner(s)
-        this._checkGameEnded(state);
-        
+    sendPlayerUpdate(state) {
+        // don't send updates when game is still not started (this actually can happen on the first piece only)
+        if (this._state !== STATE.STARTED) return;
+
         // send local tetris last updated state
-        this._connManager.sendUpdate(state);
+        this._connManager.sendPeerUpdate(state);
+
+        // check if local tetris has ended then if all tetrises are ended and show winner(s)
+        this._checkGameEnded(state.ended);
     }
 
     _changeGameState() {
+        // whether or not to send the new state to the server
+        // and it to be broadcasted to all (including current)
+        // or to update the state immediately
+        let toSendGameState = true;
         let newState;
         switch (this._state) {
             case STATE.CONNECTED:
@@ -145,12 +170,17 @@ export default class Controller {
                 break;
             case STATE.STOPPED:
                 newState = STATE.INIT;
+                toSendGameState = false;
                 break;
             default:
                 // do nothing on other cases
                 return;
         }
-        this._setGameState(newState);
+        if (toSendGameState) {
+            this._connManager.sendGameUpdate(newState);
+        } else {
+            this._setGameState(newState);
+        }
     }
 
     _setGameState(newState) {
@@ -169,7 +199,6 @@ export default class Controller {
             case STATE.CONNECTED:
                 text = 'Start';
                 break;
-                        
             case STATE.STARTED:
                 text = 'Pause';
                 this._tetrisLocal.start();
@@ -188,22 +217,19 @@ export default class Controller {
     }
 
     /**
-     * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state
+     * @param {Boolean} ended
      */
-    _checkGameEnded(state) {
+    _checkGameEnded(ended) {
         // check if all tetrises are finally ended
-        if (state.ended) {
+        if (ended) {
             const all = [...this._players.values(), this._tetrisLocal];
-            if (all.every(tetris => tetris.getEnded())) {
+            if (all.every(tetris => tetris.isEnded())) {
                 const winners = all.reduce((acc, tetris) => {
                     if (acc.length) {
                         const winnersScore = acc[0].getScore();
                         const score = tetris.getScore();
-                        if (score > winnersScore) {
-                            // this is the new winner
-                            acc = [tetris];
-                        } else if (score === winnersScore) {
-                            // this is also a winner
+                        // 1. this is the new winner or 2. this is also a winner
+                        if (score > winnersScore || score === winnersScore) {
                             acc.push(tetris);
                         }
                     } else {
