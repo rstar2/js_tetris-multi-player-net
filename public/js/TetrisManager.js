@@ -22,14 +22,15 @@ export default class TetrisManager {
     /**
      * 
      * @param {Controller} [controller]
+     * @param {Boolean} [isCreator]
      * @returns {Tetris} 
      */
-    create(controller) {
+    create(controller, isCreator) {
         const player = document.importNode(this._template.content, true).children[0];
         this._container.appendChild(player);
 
-        const tetris = new Tetris(controller, player.querySelector('.screen'),
-            ARENA_WIDTH, ARENA_HEIGHT, SCALE, player.querySelector('.score'));
+        const tetris = new Tetris(controller, player.querySelector('.score'), 
+            player.querySelector('.screen'), ARENA_WIDTH, ARENA_HEIGHT, SCALE, isCreator);
 
         player.id = tetris.getId();
 

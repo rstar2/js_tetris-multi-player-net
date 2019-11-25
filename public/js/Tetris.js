@@ -9,9 +9,9 @@ import Player from './Player.js';
 import Timer from './Timer.js';
 
 const STATE = {
-    INIT: Symbol(),
-    STARTED: Symbol(),
-    ENDED: Symbol(),
+    INIT: Symbol('INIT'),
+    STARTED: Symbol('STARTED'),
+    ENDED: Symbol('ENDED'),
 };
 
 
@@ -20,14 +20,14 @@ export default class Tetris {
 
     /**
      * 
-     * @param {Controller} controller 
-     * @param {HTMLCanvasElement} canvas 
-     * @param {Number} arenaW 
-     * @param {Number} arenaH 
-     * @param {Number} scale 
-     * @param {HTMLElement} score 
+     * @param {Controller} controller
+     * @param {HTMLElement} score
+     * @param {HTMLCanvasElement} canvas
+     * @param {Number} arenaW
+     * @param {Number} arenaH
+     * @param {Number} scale
      */
-    constructor(controller, canvas, arenaW, arenaH, scale, score) {
+    constructor(controller, score, canvas, arenaW, arenaH, scale,) {
         this._controller = controller;
         this._canvas = canvas;
         this._context = canvas.getContext('2d');
@@ -76,6 +76,16 @@ export default class Tetris {
      */
     isEnded() {
         return this._state === STATE.ENDED;
+    }
+
+    /**
+     * @param {Boolean} isCreator 
+     */
+    setCreator(isCreator) {
+        if (isCreator)
+            this._canvas.classList.add('creator');
+        else
+            this._canvas.classList.remove('creator');
     }
 
     /**
@@ -209,18 +219,14 @@ export default class Tetris {
 
             // check for Game Over - just check if right after a new piece there's a collision
             if (matrix.isCollide(this._arena, this._player)) {
-                // we have to stop the timer outside of the timer's callback - otherwise it will never stop
-                // as inside it's gonna restart itself (if we used internal timer's state inside then this will not be needed)
-                Promise.resolve().then(this.stop.bind(this));
-                this._render();
+                this.stop();
                 // notify the controller that this player-tetris 'ended' (though it may still not have lost)
                 this._controller.sendPlayerUpdate({ ended: true });
+                this._render();
             }
-
-            return;
+        } else {
+            this._controller.sendPlayerUpdate({ pos: this._player.pos });
         }
-
-        this._controller.sendPlayerUpdate({ pos: this._player.pos });
     }
 
     _generatePiece() {

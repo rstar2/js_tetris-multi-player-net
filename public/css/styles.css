@@ -5,7 +5,7 @@ body {
   font-size: 2em;
 }
 
-.container {
+.players {
   text-align: center;
   display: flex;
 }
@@ -14,12 +14,15 @@ body {
   flex: 1 1 auto;
 }
 
-canvas {
+.player canvas {
   border: solid .2em #fff;
   height: 90vh;
 }
 
-canvas.winner {
+.player canvas.creator {
+    outline: dotted;
+}
+.player  canvas.winner {
   border: solid .3em #a00;
   transition: border 3s ease;
 }

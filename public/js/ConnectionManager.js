@@ -108,12 +108,13 @@ export default class ConnectionManager {
     }
 
     /**
-     * @param {String} [current] current client
-     * @param {String[]} [peers] all clients, including current
+     * @param {String} [creatorPeer] creator client (that one that created the game/session)
+     * @param {String} [currentPeer] current client
+     * @param {String[]} [allPeers] all clients, including current
      * @param {Map<Number, Number>} [pieces]
      * @param {Number} [state] current session/game state
      */
-    _onReceivedSessionState({ current: currentPeer, peers: allPeers, pieces, state }) {
+    _onReceivedSessionState({ creator: creatorPeer, current: currentPeer, peers: allPeers, pieces, state }) {
         // it will be sent only once on the first MSG_TYPE.SESSION_JOIN request
         if (pieces) {
             // we are NOT the creator
@@ -122,7 +123,7 @@ export default class ConnectionManager {
 
         // update peers/players
         if (allPeers)
-            this._controller.updateGamePlayers(allPeers, currentPeer);
+            this._controller.updateGamePlayers(allPeers, currentPeer, creatorPeer);
 
         // update current game's state
         if (state !== undefined)
@@ -130,6 +131,7 @@ export default class ConnectionManager {
     }
 
     _onReceivedSessionDestroyed() {
+        this._onReceivedSessionState()
         this._controller.destroy();
     }
 
