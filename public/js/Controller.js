@@ -8,20 +8,20 @@ import ConnectionManager from "./ConnectionManager.js";
 import * as debug from "./debug.js";
 
 const STATE = {
-    INIT: 0,
-    CONNECTED: 1,
-    STARTED: 2,
-    PAUSED: 3,
-    STOPPED: 4
+    INIT: Symbol("INIT"),
+    CONNECTED: Symbol("CONNECTED"),
+    STARTED: Symbol("STARTED"),
+    PAUSED: Symbol("PAUSED"),
+    ENDED: Symbol("ENDED")
 };
 
 export default class Controller {
     /**
-   * @param {HTMLElement} template
-   * @param {HTMLElement} container
-   * @param {HTMLElement} stateButton
-   * @param {String} wsAddress
-   */
+     * @param {HTMLElement} template
+     * @param {HTMLElement} container
+     * @param {HTMLElement} stateButton
+     * @param {String} wsAddress
+     */
     constructor(template, container, stateButton, wsAddress) {
         this._tetrisManager = new TetrisManager(template, container);
         // create the current local tetris
@@ -30,7 +30,10 @@ export default class Controller {
         this._isCreator = false;
 
         this._stateButton = stateButton;
-        this._stateButton.addEventListener("click", this._changeGameState.bind(this));
+        this._stateButton.addEventListener(
+            "click",
+            this._changeGameState.bind(this)
+        );
 
         this._connManager = new ConnectionManager(this);
         // connect to a game - create a new one or join an existing
@@ -46,11 +49,11 @@ export default class Controller {
     }
 
     /**
-   *
-   * @param {Map} pieces
-   * @param {Boolean} isCreator
-   * @param {String} [sessionId]
-   */
+     *
+     * @param {Map} pieces
+     * @param {Boolean} isCreator
+     * @param {String} [sessionId]
+     */
     init(pieces, isCreator, sessionId) {
         if (sessionId) {
             // update the window location's hash
@@ -75,18 +78,18 @@ export default class Controller {
     }
 
     /**
-   * @param {String} state
-   */
+     * @param {String} state
+     */
     updateGameState(state) {
-    // TODO: validate the new state according to the current
+        // TODO: validate the new state according to the current
         this._setGameState(state);
     }
 
     /**
-   * @param {String[]} allPlayers all clients/players, including current
-   * @param {String} currentPlayer current client
-   * @param {String} creatorPeer creator client
-   */
+     * @param {String[]} allPlayers all clients/players, including current
+     * @param {String} currentPlayer current client
+     * @param {String} creatorPeer creator client
+     */
     updateGamePlayers(allPlayers, currentPlayer, creatorPeer) {
         // add all newly connected players and draw a Tetris for them
         allPlayers.forEach(player => {
@@ -95,8 +98,7 @@ export default class Controller {
             // add new
             if (!this._players.has(player)) {
                 const tetris = this._tetrisManager.create();
-                if (player === creatorPeer)
-                    tetris.setCreator(true);
+                if (player === creatorPeer) tetris.setCreator(true);
                 this._players.set(player, tetris);
 
                 // send it the pieces and initial piece state (don't wait for the server to do it)
@@ -113,8 +115,9 @@ export default class Controller {
             }
         });
 
-        if (this._players.size) this._setGameState(STATE.CONNECTED);
-        else {
+        if (this._players.size) {
+            this._setGameState(STATE.CONNECTED);
+        } else {
             // looks like the creator is left alone
             // TODO: if started then reset the game
             this._setGameState(STATE.INIT);
@@ -122,9 +125,9 @@ export default class Controller {
     }
 
     /**
-   * @param {String} player
-   * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state
-   */
+     * @param {String} player
+     * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state
+     */
     updatePlayer(player, state) {
         const tetris = this._players.get(player);
         if (!tetris) {
@@ -140,10 +143,10 @@ export default class Controller {
     }
 
     /**
-   * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state
-   */
+     * @param {{ arena? : Number[][], piece? : Number[][], score? : Number, ended?: Date}} state
+     */
     sendPlayerUpdate(state) {
-    // don't send updates when game is still not started (this actually can happen on the first piece only)
+        // don't send updates when game is still not started (this actually can happen on the first piece only)
         if (this._state !== STATE.STARTED) return;
 
         // send local tetris last updated state
@@ -154,9 +157,9 @@ export default class Controller {
     }
 
     _changeGameState() {
-    // whether or not to send the new state to the server
-    // and it to be broadcasted to all (including current)
-    // or to update the state immediately
+        // whether or not to send the new state to the server
+        // and it to be broadcasted to all (including current)
+        // or to update the state immediately
         let toSendGameState = true;
         let newState;
         switch (this._state) {
@@ -167,7 +170,7 @@ export default class Controller {
             case STATE.STARTED:
                 newState = STATE.PAUSED;
                 break;
-            case STATE.STOPPED:
+            case STATE.ENDED:
                 newState = STATE.INIT;
                 toSendGameState = false;
                 break;
@@ -206,7 +209,7 @@ export default class Controller {
                 text = "Unpause";
                 this._tetrisLocal.stop();
                 break;
-            case STATE.STOPPED:
+            case STATE.ENDED:
                 text = "Connect";
                 break;
         }
@@ -216,10 +219,10 @@ export default class Controller {
     }
 
     /**
-   * @param {Boolean} ended
-   */
+     * @param {Boolean} ended
+     */
     _checkGameEnded(ended) {
-    // check if all tetrises are finally ended
+        // check if all tetrises are finally ended
         if (ended) {
             const all = [...this._players.values(), this._tetrisLocal];
             if (all.every(tetris => tetris.isEnded())) {
